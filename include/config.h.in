@@ -1,0 +1,76 @@
+#ifndef GRIDFS_CONFIG_H
+#define GRIDFS_CONFIG_H
+
+#define _FILE_OFFSET_BITS 64
+#define FUSE_USE_VERSION  26
+#include <fuse.h>
+
+#include <filesystem_operations.h>
+#include <stddef.h>
+#include <stdio.h>
+
+#include <mongo/client/dbclient.h>
+
+#define GRIDFS_OPT(t, p, v) { t, offsetof(struct gridfs_config, p), v }
+
+namespace gridfs 
+{
+
+  enum {
+    KEY_HELP,
+    KEY_VERSION,
+  };
+
+  //config containing options from commandline
+  struct 
+  gridfs_config 
+  {
+    char* mongo_host;
+    char* mongo_port;
+    char* mongo_user;
+    char* mongo_password;
+    char* mongo_db;
+    char* mongo_collection_prefix;
+    char* path_prefix;
+    char* log_level;
+    char* log_file;
+    unsigned int default_uid;
+    unsigned int default_gid;
+//    int chache_size_mb;
+    unsigned int mongo_chunk_size;
+  };
+
+  class Fuse {
+  public:
+    //all command line args
+    fuse_args args;
+
+    //config contains options for commandline
+    gridfs_config config;  
+
+    // point filesystem operations to the right callback functions
+    fuse_operations filesystem_operations;
+
+    // options to configure gridfs
+    // here: mapping to config struct
+    static fuse_opt opts[];
+ 
+    static int 
+    opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs);
+
+    void
+    init(int argc, char **argv);
+    
+    ~Fuse();
+
+    const mongo::ConnectionString&
+    connection_string();
+
+    const std::string
+    configure_path(const char* path);
+  };
+
+  extern Fuse FUSE;
+
+}
+#endif
