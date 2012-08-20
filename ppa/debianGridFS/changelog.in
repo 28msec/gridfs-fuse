@@ -1,0 +1,5 @@
+@PPA_NAME@ (@PPA_VERSION@~@PPA_DISTRO@@PPA_REVISION@) @PPA_DISTRO@; urgency=low
+
+  *Updated to current Version
+
+ -- @PPA_MAINTAINER@  @PPA_DATE_TIME@ 

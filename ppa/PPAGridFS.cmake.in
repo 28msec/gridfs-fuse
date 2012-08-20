@@ -9,45 +9,44 @@ IF (NOT PPA_MAINTAINER)
   SET(PPA_MAINTAINER "David Graf <davidagraf@gmail.com>")
 ENDIF()
 IF (NOT PPA_NAME)
-  SET(PPA_NAME "28msec-cmake")
+  SET(PPA_NAME "gridfs")
 ENDIF()
 IF (NOT PPA_REVISION)
   SET(PPA_REVISION "0")
 ENDIF()
 
 SET(PPA_HOMEPAGE "http://www.28msec.com/")
-SET(PPA_DISTROS "lucid" "maverick" "natty" "oneiric" "precise")
-SET(PPA_VERSION "2.8.8")
+SET(PPA_DISTROS "precise")
+SET(PPA_VERSION "@GRIDFS_MAJOR_VERSION@.@GRIDFS_MINOR_VERSION@.@GRIDFS_PATCH_VERSION@")
 
-SET(PPA_DEPENDENCIES "build-essential, debhelper, cmake")
-SET(PPA_HOST "ppa:28msec/cmake")
+SET(PPA_DEPENDENCIES "libmongodriver, debhelper, cmake, fuse")
+SET(PPA_HOST "ppa:28msec/utils")
 EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
 
-SET(PPA_DIR "@CMAKE_CURRENT_BINARY_DIR@/ppaingCMake")
-SET(PPA_SOURCE_DIR "${PPA_DIR}/cmake-${PPA_VERSION}")
+SET(PPA_DIR "@CMAKE_CURRENT_BINARY_DIR@/ppaingGridFS")
+SET(PPA_SOURCE_DIR "${PPA_DIR}/${PPA_NAME}-${PPA_VERSION}")
 SET(PPA_DEBIAN_DIR "${PPA_SOURCE_DIR}/debian")
-SET(PPA_DEBIAN_TEMPL_DIR "@CMAKE_CURRENT_SOURCE_DIR@/debianCMake")
+SET(PPA_DEBIAN_TEMPL_DIR "@CMAKE_CURRENT_SOURCE_DIR@/debianGridFS")
 
 FILE(REMOVE_RECURSE ${PPA_DIR})
 FILE(MAKE_DIRECTORY ${PPA_SOURCE_DIR})
 
-MESSAGE(STATUS "Preparing CMake sources for PPA.")
-EXECUTE_PROCESS(
-  COMMAND wget http://www.cmake.org/files/v2.8/cmake-2.8.8.tar.gz
-  WORKING_DIRECTORY ${PPA_DIR})
+MESSAGE(STATUS "Preparing Sausalito sources for PPA.")
+FILE(COPY @CMAKE_SOURCE_DIR@/.
+  DESTINATION ${PPA_SOURCE_DIR}
+  PATTERN "build" EXCLUDE
+  PATTERN "*~" EXCLUDE
+  PATTERN "*.swp" EXCLUDE
+  PATTERN ".bzr" EXCLUDE
+)
 
 EXECUTE_PROCESS(
-  COMMAND tar xvfz cmake-${PPA_VERSION}.tar.gz
-  WORKING_DIRECTORY ${PPA_DIR})
-
-MESSAGE(STATUS "Packing CMake sources for PPA.")
-EXECUTE_PROCESS(
-  COMMAND tar czf 28msec-cmake_${PPA_VERSION}.orig.tar.gz  cmake-${PPA_VERSION}
+  COMMAND tar czf ${PPA_NAME}_${PPA_VERSION}.orig.tar.gz  ${PPA_NAME}-${PPA_VERSION}
   WORKING_DIRECTORY ${PPA_DIR})
 
 FOREACH(PPA_DISTRO ${PPA_DISTROS})
   EXECUTE_PROCESS(
-    COMMAND cp 28msec-cmake_${PPA_VERSION}.orig.tar.gz 28msec-cmake_${PPA_VERSION}~${PPA_DISTRO}${PPA_REVISION}.orig.tar.gz
+    COMMAND cp ${PPA_NAME}_${PPA_VERSION}.orig.tar.gz ${PPA_NAME}_${PPA_VERSION}~${PPA_DISTRO}${PPA_REVISION}.orig.tar.gz
     WORKING_DIRECTORY ${PPA_DIR})
 
   MESSAGE(STATUS "Creating configration files for ${PPA_DISTRO}.")
