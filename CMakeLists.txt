@@ -56,6 +56,7 @@ ENDIF(Boost_SYSTEM_FOUND)
 ADD_SUBDIRECTORY(include)
 ADD_SUBDIRECTORY(bin)
 ADD_SUBDIRECTORY(test)
+ADD_SUBDIRECTORY(ppa)
 
 ########################################################################
 # CPACK
