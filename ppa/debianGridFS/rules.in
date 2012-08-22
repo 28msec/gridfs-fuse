@@ -14,7 +14,7 @@ builddir/Makefile:
 	dh_testdir
 	# Add here commands to configure the package.
 	mkdir -p builddir
-	cd builddir && cmake .. -DCMAKE_C_FLAGS="$(CFLAGS)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" -DCMAKE_VERBOSE_MAKEFILE=O
+	cd builddir && cmake .. -DCMAKE_C_FLAGS="$(CFLAGS)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" -DCMAKE_VERBOSE_MAKEFILE=O -DCMAKE_INSTALL_PREFIX=$(CURDIR)/debian/@PPA_NAME@/usr
 
 
 build: build-stamp
@@ -43,7 +43,7 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/sausalito-coresdk.
-	make install
+	$(MAKE) install -C builddir
 	#$(MAKE) doc
 
 # Build architecture-independent files here.
