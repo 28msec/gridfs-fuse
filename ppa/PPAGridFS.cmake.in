@@ -19,7 +19,7 @@ SET(PPA_HOMEPAGE "http://www.28msec.com/")
 SET(PPA_DISTROS "precise")
 SET(PPA_VERSION "@GRIDFS_MAJOR_VERSION@.@GRIDFS_MINOR_VERSION@.@GRIDFS_PATCH_VERSION@")
 
-SET(PPA_DEPENDENCIES "libmongo-cxx-driver-dev, debhelper, cmake, fuse")
+SET(PPA_DEPENDENCIES "libmongo-cxx-driver-dev, debhelper, cmake, libfuse-dev")
 SET(PPA_HOST "ppa:28msec/utils")
 EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
 
