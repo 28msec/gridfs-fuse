@@ -1,13 +1,13 @@
-#include <config.h>
+#include "file.h"
 
 #include <sstream>
 #include <sys/mman.h>
-
-#include <file.h>
-#include <lock.h>
-#include <log4cxx/gridfs_logging.h>
+#include <syslog.h>
 #include <cassert>
 
+#include "gridfs_fuse.h"
+
+#include "lock.h"
 
 namespace gridfs {
 
@@ -34,8 +34,6 @@ namespace gridfs {
   size_t
   File::write(const char * data, size_t size,off_t offset)
   {
-    GRIDFS_INIT_LOGGER("gridfs.File.write")
-
     // lazy init
     if (theChunkSize==0)
       theChunkSize=FUSE.config.mongo_chunk_size;
@@ -52,19 +50,19 @@ namespace gridfs {
     }
 
     // make sure we have enough virtual memory
-    if(theCurrentDataSize==0){
-      _LOG_DEBUG("Requested virtual memory. Size:" << size << " offset:" << offset
-                 << ". Initializing memory chunk of size: " << theChunkSize  )
-
-      // lazyly allocate some virtual memory
+    if(theCurrentDataSize==0)
+    {
+      syslog(LOG_DEBUG,
+          "requesting virtual memory. size %i offset %i chunksize %i",
+          (int) size, (int) offset, (int) theChunkSize);
       init_memory();
     }
-    while(theCurrentDataSize < (offset + size)){
-      _LOG_DEBUG("Requested extra virtual memory. Size:" << size << " offset:" << offset
-                 << ". \n     Increasing memory chunk from " << theCurrentDataSize 
-                 << " >> " << theCurrentDataSize + theChunkSize  )
 
-      // we need some more memory
+    while(theCurrentDataSize < (offset + size))
+    {
+      syslog(LOG_DEBUG,
+          "requesting extra virtual memory. size %i offset %i chunksize %i",
+          (int) size, (int) offset, (int) theChunkSize);
       extend_memory();
     }
       
@@ -84,30 +82,27 @@ namespace gridfs {
     free_memory(); // clean dirty flag and release virtual memory
     theFileLength = theWritten;
     
-    GRIDFS_SYNCHRONIZE_UPDATE
+    synchonizeUpdate();
   }
 
   size_t
   File::read(char *data, size_t size, off_t offset)
   {
-    GRIDFS_INIT_LOGGER("gridfs.File.read")
-
-    // lazy init
-    if (theChunkSize==0)
+    if (theChunkSize == 0)
       theChunkSize = gridfile().getChunkSize();
-    if (theFileLength==0)
+
+    if (theFileLength == 0)
       theFileLength = gridfile().getContentLength();
 
-    // check read is not out of range
-    if(theFileLength < (size_t)offset){
-      _LOG_INFO("Reading out of file range. "
-                << "\n    You tried to read from file " << path() << " with offset " << offset
-                << " and size " << size << " (filesize:" << theFileLength << ")")
+    if (theFileLength < (size_t)offset)
+    {
+      syslog(LOG_INFO, "read out of range; path: %s, offset: %i, size: %i, filesize: %i",
+          path().c_str(), (int)offset, (int)size, (int)theFileLength);
       return 0;
     }
 
     size_t read = 0; // bytes read
-    while(read != size && (offset+read)<theFileLength)
+    while (read != size && (offset+read) < theFileLength)
     {
       int chunkN = (int) (offset+read) / (int) theChunkSize;
       size_t aligned_size = (offset+size > theFileLength)?(theFileLength - offset):size; // align size to filelength
@@ -137,18 +132,14 @@ namespace gridfs {
     // doesn't store a new file entry, but don't see a better solution yet.
     // As an alternative, you could read the stat first and then create a new file but 
     // this is also not multi process safe (race condition between 2 steps) 
-    client().update(files_collection(),
-                          filter,
-                          update);
+    theConnection->update(filesCollection(), filter, update);
 
-    GRIDFS_SYNCHRONIZE_UPDATE
+    synchonizeUpdate();
   }
 
   size_t
   File::read(int chunkN, char *data, size_t size, off_t offset)
   {
-    GRIDFS_INIT_LOGGER("gridfs.File._read")
-
     // this function must be synchonized
     // otherwise cached chunks can swap while being read
     // the scoped lock will be released even if an exception is thrown
@@ -163,11 +154,9 @@ namespace gridfs {
     if(chunkN != theCachedChunkN){ 
       theCachedChunk = gridfile().getChunk(chunkN);
       theCachedChunkN = chunkN;
-      _LOG_DEBUG("Fetched chunk " << chunkN << " into cache of file " << path())
+      syslog(LOG_DEBUG, "fetched chunk %i into cache of file %s",
+          chunkN, path().c_str());
     }
-
-    _LOG_DEBUG("Reading from cached chunk: " << chunkN << " offset: " << offset
-               << " size: " << size)
 
     // fill buffer as requested
     int len;
@@ -193,9 +182,13 @@ namespace gridfs {
                    0 /* offset ignored anyway with invalid file descriptor */); 
 
     // check if anything went wrong
-    if(theData==MAP_FAILED){
+    if (theData==MAP_FAILED)
+    {
       std::stringstream lMsg;
-      lMsg << "Allocating virtual memory by the kernel failed. Cannot write to file " << path();
+      lMsg
+        << "Allocating virtual memory by the kernel failed."
+        << " Cannot write to file " << path();
+      syslog(LOG_ERR, lMsg.str().c_str());
       throw std::runtime_error(lMsg.str());
     }
 
@@ -206,28 +199,19 @@ namespace gridfs {
   void
   File::extend_memory()
   {
-#   ifdef __APPLE__
-    void* lOldData = theData;
-    theData = mmap(NULL /* let kernel choose address */,
-                   theCurrentDataSize + theChunkSize,
-                   PROT_WRITE,
-                   MAP_PRIVATE /* not shared between processes */
-                   | MAP_ANON /* not backed by a real file */,
-                   -1 /* invalid file descriptor */,
-                   0 /* offset ignored anyway with invalid file descriptor */);
-    memcpy(theData, lOldData, theCurrentDataSize);
-    munmap(lOldData, theCurrentDataSize);
-#   else
     theData = mremap(theData /* old address */,
                      theCurrentDataSize,
                      (theCurrentDataSize + theChunkSize) /* new extended size */,
                      MREMAP_MAYMOVE /* kernel is permitted to relocate the mapping to a new virtual address */);
-#   endif
 
     // check if anything went wrong
-    if(theData==MAP_FAILED){
+    if (theData==MAP_FAILED)
+    {
       std::stringstream lMsg;
-      lMsg << "Extending virtual memory by the kernel failed. Failed to write to file " << path();
+      lMsg
+        << "Extending virtual memory by the kernel failed."
+        << " Cannot write to file " << path();
+      syslog(LOG_ERR, lMsg.str().c_str());
       throw std::runtime_error(lMsg.str());
     }
     
@@ -238,7 +222,8 @@ namespace gridfs {
   void
   File::free_memory()
   {
-    if(theCurrentDataSize!=0){
+    if (theCurrentDataSize!=0)
+    {
       munmap(theData,theCurrentDataSize);
       theWritten = 0;
       theHasChanges = false; 

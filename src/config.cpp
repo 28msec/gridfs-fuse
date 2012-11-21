@@ -24,7 +24,6 @@ namespace gridfs
      GRIDFS_OPT("log_file=%s", log_file, 0),
      GRIDFS_OPT("default_uid=%u", default_uid, 0),
      GRIDFS_OPT("default_gid=%u", default_gid, 0),
-//     GRIDFS_OPT("chache_size_mb=%i", chache_size_mb, 0),
 
      FUSE_OPT_KEY("-V",             KEY_VERSION),
      FUSE_OPT_KEY("-v",             KEY_VERSION),
@@ -63,7 +62,6 @@ namespace gridfs
 	      "    -o log_file=STRING                    optional log file or \"console\" or \"syslog\" (default: \"console\")\n"
 	      "    -o default_uid=INT                     optional default user id (default: userid of user running gridfs)\n"
 	      "    -o default_gid=INT                     optional default group id (default: groupid of user running gridfs)\n"
-//	      "    -o cache_size_mb=INT                  cache size in MB (not implemented yet)\n"
 	      "\n"
 	      , outargs->argv[0]);
       fuse_opt_add_arg(outargs, "-ho");
@@ -95,7 +93,6 @@ namespace gridfs
     config.log_file = (char*)"console";
     config.default_uid = getuid();
     config.default_gid = getgid();
-//    config.chache_size_mb = 0;
     config.mongo_chunk_size = MONGO_DEFAULT_CHUNK_SIZE; // this is fix for now 
 
     // point filesystem operations to the right callback functions
@@ -145,12 +142,6 @@ namespace gridfs
     max_write.append(chunk_size);
     fuse_opt_add_arg(&args, "-o");
     fuse_opt_add_arg(&args, max_write.c_str());
-
-#   ifndef __APPLE__
-    std::string big_writes("big_writes");
-    fuse_opt_add_arg(&args, "-o");
-    fuse_opt_add_arg(&args, big_writes.c_str());
-#   endif
 
     // check mandatory args
     if(strcmp(config.mongo_db,"") == 0){

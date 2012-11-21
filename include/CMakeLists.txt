@@ -1,5 +1,0 @@
-# Copyright 2010 28msec Inc.
-
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/log4cxx/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/log4cxx/config.h)
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h @ONLY)
-

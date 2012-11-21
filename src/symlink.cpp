@@ -1,5 +1,4 @@
-#include <symlink.h>
-#include <log4cxx/gridfs_logging.h>
+#include "symlink.h"
 
 #include <sstream>
 

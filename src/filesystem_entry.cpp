@@ -1,6 +1,5 @@
-#include <filesystem_entry.h>
-#include <config.h>
-#include <log4cxx/gridfs_logging.h>
+#include "filesystem_entry.h"
+#include "gridfs_fuse.h"
 
 #include <cassert>
 #include <ctime>
@@ -12,23 +11,25 @@ namespace gridfs {
   FilesystemEntry::FilesystemEntry(const std::string& aPath):
     thePath(aPath),
     theConnection(FUSE.connection_string()),
-    theClient(theConnection.conn()),
-    theGridFS(theClient, FUSE.config.mongo_db, FUSE.config.mongo_collection_prefix)
+    theGridFS(
+        *theConnection.get(),
+        FUSE.config.mongo_db,
+        FUSE.config.mongo_collection_prefix)
   {
-    // TODO DK the following commented code throws an assertion exception 
-    // so the chunksize cannot be changed here until this is fixed in mongo client
-    //theGridFS.setChunkSize(FUSE.config.mongo_chunk_size);
-  }
-  
-  FilesystemEntry::~FilesystemEntry(){
-    theConnection.done();
   }
 
+  FilesystemEntry::~FilesystemEntry()
+  {
+    // put it back into the connection pool
+    theConnection.done();
+  }
+  
   mongo::GridFile&
   FilesystemEntry::gridfile()
   {
     // fetch the file lazyly only if needed
-    if (theGridFile.get()==0){
+    if (theGridFile.get()==0)
+    {
       theGridFile.reset(new mongo::GridFile(theGridFS.findFile(thePath)));
     }
     return *(theGridFile.get());
@@ -37,7 +38,7 @@ namespace gridfs {
   void
   FilesystemEntry::stat(struct stat *stbuf)
   {
-    stat(gridfile(),stbuf);
+    stat(gridfile(), stbuf);
   }
 
   void
@@ -68,7 +69,11 @@ namespace gridfs {
   }
 
   void
-  FilesystemEntry::create(mode_t mode, uid_t uid, gid_t gid, const std::string content)
+  FilesystemEntry::create(
+      mode_t mode,
+      uid_t uid,
+      gid_t gid,
+      const std::string& content)
   {
     // we use the content type to store some extra meta data
     std::stringstream lContentType;    
@@ -78,7 +83,7 @@ namespace gridfs {
 
     gridfs().storeFile(data, length, path(), lContentType.str());    
 
-    GRIDFS_SYNCHRONIZE_UPDATE
+    synchonizeUpdate();
 
     //force reload
     force_reload();
@@ -89,7 +94,7 @@ namespace gridfs {
   {
     gridfs().removeFile(path());
 
-    GRIDFS_SYNCHRONIZE_UPDATE;
+    synchonizeUpdate();
   }
 
   void
@@ -131,10 +136,7 @@ namespace gridfs {
   void
   FilesystemEntry::force_reload()
   {
-    if (theGridFile.get()!=0){ 
-      mongo::GridFile* file=theGridFile.release();
-      delete file;
-    }
+    theGridFile.reset();
   }
 
   void
@@ -192,8 +194,6 @@ namespace gridfs {
                                      gid_t gid,
                                      time_t time)
   {
-    GRIDFS_INIT_LOGGER("gridfs.FilesystemEntry.updateContentType");
-
     std::stringstream lContentType;    
     lContentType << "m:" << mode << "|u:" << uid << "|g:" << gid << "|t:" << time;
 
@@ -203,27 +203,42 @@ namespace gridfs {
     mongo::BSONObj update = BSON( "$set" 
                                << BSON ( "contentType" << lContentType.str() ));
 
-    _LOG_DEBUG("updating object " << id.str()
-               << " in collection " << files_collection() 
-               << " setting contentType " << lContentType.str())
-
     // update it
     // TODO DK this is not multi process safe because it doesn't store a new file 
     //         entry, but don't see a better solution yet.
-    client().update(files_collection(),
-                          filter,
-                          update);
+    theConnection->update(filesCollection(), filter, update);
 
-    GRIDFS_SYNCHRONIZE_UPDATE;
+    synchonizeUpdate();
   }
 
   std::string
-  FilesystemEntry::files_collection()
+  FilesystemEntry::filesCollection()
   {
-    std::stringstream files_collection;
-    files_collection << FUSE.config.mongo_db << "." 
-                     << FUSE.config.mongo_collection_prefix << ".files";
-    return files_collection.str();
+    return std::string(FUSE.config.mongo_db) + "." + 
+      FUSE.config.mongo_collection_prefix +
+      ".files";
+  }
+
+  /**
+   * if updates are not synchronized errors will be raised by the filesystem.
+   * e.g. if the filesystem creates a file and checks the attributes right
+   * after that the file eventually won't exist because the write operation
+   * didn't finish. Therefore, updates must be synchronized.
+   *
+   * the getLastErrorDetailed function can be used for synchronization
+   * because it waits for the operation to finish.
+   */
+  void
+  FilesystemEntry::synchonizeUpdate()
+  {
+    mongo::BSONObj lErrorObj = theConnection->getLastErrorDetailed();
+    const bool lHasError = ! lErrorObj.getField("err").isNull();
+    if (lHasError)
+    {
+      std::stringstream lErrorMsg;
+      lErrorMsg << "An update operation failed: " << lErrorObj.jsonString();
+      throw std::runtime_error(lErrorMsg.str());
+    }
   }
 
 }

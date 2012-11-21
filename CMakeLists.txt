@@ -27,6 +27,17 @@ ELSE(FUSE_FOUND)
 ENDIF(FUSE_FOUND)
 
 ########################################################################
+# libmemcached
+########################################################################
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindLibMemcached.cmake)
+IF (LIBMEMCACHED_FOUND)
+  MESSAGE(STATUS "Found libmemcached libraries -- " ${LIBMEMCACHED_LIBRARIES})
+  INCLUDE_DIRECTORIES(${LIBMEMCACHED_INCLUDE_DIR})
+ELSE(LIBMEMCACHED_FOUND)
+    MESSAGE(FATAL_ERROR "The libmemcached library is required in order to build GridFs.")
+ENDIF (LIBMEMCACHED_FOUND)
+
+########################################################################
 # mongodriver
 ########################################################################
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindMongoDriver.cmake)
@@ -53,7 +64,6 @@ ENDIF(Boost_SYSTEM_FOUND)
 # MAIN BUILD
 ########################################################################
 
-ADD_SUBDIRECTORY(include)
 ADD_SUBDIRECTORY(bin)
 ADD_SUBDIRECTORY(test)
 ADD_SUBDIRECTORY(ppa)
