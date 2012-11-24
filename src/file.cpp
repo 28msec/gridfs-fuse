@@ -188,7 +188,7 @@ namespace gridfs {
       lMsg
         << "Allocating virtual memory by the kernel failed."
         << " Cannot write to file " << path();
-      syslog(LOG_ERR, lMsg.str().c_str());
+      syslog(LOG_ERR, "%s", lMsg.str().c_str());
       throw std::runtime_error(lMsg.str());
     }
 
@@ -211,7 +211,7 @@ namespace gridfs {
       lMsg
         << "Extending virtual memory by the kernel failed."
         << " Cannot write to file " << path();
-      syslog(LOG_ERR, lMsg.str().c_str());
+      syslog(LOG_ERR, "%s", lMsg.str().c_str());
       throw std::runtime_error(lMsg.str());
     }
     
