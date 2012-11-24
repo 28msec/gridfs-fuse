@@ -377,7 +377,11 @@ namespace gridfs
     {
       // write changes to mongo if any
       if (lFile->hasChanges())
+      {
         lFile->store();
+        Memcache m;
+        m.remove(lPath);
+      }
 
       // close file
       delete lFile;
@@ -596,6 +600,8 @@ namespace gridfs
       }
 
       lEntry.chmod(mode); 
+      Memcache m;
+      m.remove(lPath);
 
     } GRIDFS_CATCH
 
@@ -624,6 +630,8 @@ namespace gridfs
       else
       {
         lEntry.chown(uid,gid); 
+        Memcache m;
+        m.remove(lPath);
       }
 
 
@@ -655,9 +663,11 @@ namespace gridfs
         return -ENOENT;
       }
 
-      if(offset==0)
+      if (offset==0)
       {
         lFile.truncate();
+        Memcache m;
+        m.remove(lPath);
       }
       else
       {
@@ -698,6 +708,8 @@ namespace gridfs
       }
 
       lFile.utimes(tv[1].tv_sec);
+      Memcache m;
+      m.remove(lPath);
 
     } GRIDFS_CATCH
 
