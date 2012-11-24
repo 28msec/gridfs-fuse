@@ -23,10 +23,13 @@
  */
 #define GRIDFS_CATCH \
   catch (mongo::UserException& u) { \
+    syslog(LOG_ERR, "mongo exception: %s", u.getInfo().toString().c_str()); \
     result = -EIO;\
   }catch (std::exception& e) { \
+    syslog(LOG_ERR, "std::exception: %s", e.what()); \
     result =- EIO;\
   }catch(...){ \
+    syslog(LOG_ERR, "unknown exception"); \
     return -EIO; \
   }
 
@@ -317,7 +320,12 @@ namespace gridfs
    * TODO: evtl optimization: align buffer size to chunksize in mongo with -o max_read=xxx -o max_write=xxx
    */
   int
-  write(const char * path, const char * data, size_t size, off_t offset, struct fuse_file_info * fileinfo)
+  write(
+      const char * path,
+      const char * data,
+      size_t size,
+      off_t offset,
+      struct fuse_file_info * fileinfo)
   {
     assert(fileinfo);
     assert(fileinfo->fh);
@@ -367,7 +375,6 @@ namespace gridfs
 
     try
     {
-
       // write changes to mongo if any
       if (lFile->hasChanges())
         lFile->store();

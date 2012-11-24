@@ -240,8 +240,8 @@ namespace gridfs
 
   Fuse::~Fuse()
   {
-    if (theMaster) memcached_free(theMaster);
     if (theMemcachePool) memcached_pool_destroy(theMemcachePool);
+    if (theMaster) memcached_free(theMaster);
 
     fuse_opt_free_args(&args);
 
