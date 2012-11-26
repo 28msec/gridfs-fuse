@@ -5,9 +5,6 @@
 # - PPA_HOMEPAGE: homepage set in generated package
 # - PPA_DISTROS: ubuntu distributions for which a package is generated and uploaded
 
-IF (NOT PPA_MAINTAINER)
-  SET(PPA_MAINTAINER "David Graf <davidagraf@gmail.com>")
-ENDIF()
 IF (NOT PPA_NAME)
   SET(PPA_NAME "gridfs")
 ENDIF()
@@ -22,6 +19,17 @@ SET(PPA_VERSION "@GRIDFS_MAJOR_VERSION@.@GRIDFS_MINOR_VERSION@.@GRIDFS_PATCH_VER
 SET(PPA_DEPENDENCIES "libmongo-cxx-driver-dev, debhelper, cmake, libfuse-dev, libboost-system-dev, libmemcached-dev")
 SET(PPA_HOST "ppa:28msec/utils")
 EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
+
+# compute PPA_MAINTAINER by reading bzr whoami
+EXECUTE_PROCESS(
+  COMMAND bzr whoami
+  OUTPUT_VARIABLE PPA_MAINTAINER
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE RETURN_CODE)
+
+IF (NOT RETURN_CODE EQUAL 0)
+  MESSAGE(FATAL_ERROR "bzr whoami failed")
+ENDIF (NOT RETURN_CODE EQUAL 0)
 
 SET(PPA_DIR "@CMAKE_CURRENT_BINARY_DIR@/ppaingGridFS")
 SET(PPA_SOURCE_DIR "${PPA_DIR}/${PPA_NAME}-${PPA_VERSION}")
