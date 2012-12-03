@@ -37,6 +37,31 @@
 namespace gridfs
 {
 
+// ############################################
+  /********************************************* 
+   * Helper functions
+   */
+  bool
+  is_proc(const std::string& aPath, struct stat * aStBuf)
+  {
+    static std::string lProcPrefix = std::string(FUSE.config.path_prefix) + "/proc";
+    return !aPath.compare(0, lProcPrefix.size(), lProcPrefix, 0, lProcPrefix.size());
+  }
+
+  void
+  configure_path(const char* path, std::string& aRes)
+  {
+    aRes.reserve(256);
+    aRes.append(FUSE.config.path_prefix);
+    aRes.append(path);
+    
+    // remove trailing / otherwise the path is not found in mongo
+    if (aRes.length() && aRes.at(aRes.length() - 1) == '/')
+    {
+      aRes.resize(aRes.length()-1);
+    }
+  }
+
 
 // ############################################
   /********************************************* 
@@ -51,14 +76,14 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(aPath, lPath);
+    configure_path(aPath, lPath);
 
     Memcache m;
     if (!m.get(lPath, aStBuf))
     {
       try
       {
-        if (FUSE.is_proc(lPath, aStBuf))
+        if (is_proc(lPath, aStBuf))
         {
           Proc lProc(lPath);
           lProc.stat(aStBuf); 
@@ -102,7 +127,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -129,7 +154,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -221,7 +246,7 @@ namespace gridfs
     memset(fileinfo, 0, sizeof(struct fuse_file_info));
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -229,7 +254,7 @@ namespace gridfs
 
       syslog(LOG_DEBUG, "create: %s", lPath.c_str());
 
-      if (FUSE.is_proc(lPath, 0))
+      if (is_proc(lPath, 0))
       {
         lInfo.reset(new FileInfo(new Proc(lPath)));
         lInfo->proc->create();
@@ -272,7 +297,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -314,13 +339,13 @@ namespace gridfs
 
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     std::auto_ptr<FileInfo> lInfo;
 
     try
     {
-      if (FUSE.is_proc(lPath, 0))
+      if (is_proc(lPath, 0))
       {
         lInfo.reset(new FileInfo(new Proc(lPath)));
 
@@ -369,7 +394,7 @@ namespace gridfs
 
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
     syslog(LOG_DEBUG, "write: context path %s size %i offset %i",
         path, (int) size, (int) offset);
 
@@ -404,7 +429,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     std::auto_ptr<FileInfo> lInfo(reinterpret_cast<FileInfo*>(fileinfo->fh));
 
@@ -465,7 +490,7 @@ namespace gridfs
 
 #ifndef NDEBUG
     std::string lPath;
-    FUSE.configure_path(aPath, lPath);
+    configure_path(aPath, lPath);
     syslog(LOG_DEBUG, "read path: %s, offset: %i, size: %i",
         lPath.c_str(), (int)offset, (int)size);
 #endif
@@ -495,13 +520,13 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
       std::auto_ptr<FileInfo> lInfo;
 
-      if (FUSE.is_proc(lPath, 0))
+      if (is_proc(lPath, 0))
       {
         lInfo.reset(new FileInfo(new Proc(lPath)));
       }
@@ -557,7 +582,7 @@ namespace gridfs
     int result = 0;
     const std::string lOldPath = oldpath;
     std::string lNewPath;
-    FUSE.configure_path(newpath, lNewPath);
+    configure_path(newpath, lNewPath);
     struct stat stbuf;
     memset(&stbuf, 0, sizeof(struct stat));
     
@@ -603,7 +628,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -631,7 +656,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -663,7 +688,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -695,7 +720,7 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
     try
     {
@@ -739,9 +764,9 @@ namespace gridfs
   {
     int result = 0;
     std::string lPath;
-    FUSE.configure_path(path, lPath);
+    configure_path(path, lPath);
 
-    if (FUSE.is_proc(lPath, 0))
+    if (is_proc(lPath, 0))
     {
       return 0;
     }

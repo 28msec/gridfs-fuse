@@ -17,11 +17,18 @@ namespace gridfs {
     Proc(const std::string& aPath)
       : thePath(aPath)
     {
-      if (aPath == "/proc")
+      static std::string lProc
+        = std::string(FUSE.config.path_prefix) + "/proc";
+      static std::string lProcInst
+        = std::string(FUSE.config.path_prefix) + "/proc/instances";
+      static std::string lProcInstList
+        = std::string(FUSE.config.path_prefix) + "/proc/instances/";
+
+      if (aPath == lProc)
         theType = ROOT;
-      else if (aPath == "/proc/instances")
+      else if (aPath == lProcInst)
         theType = INSTANCES;
-      else if (aPath.find("/proc/instances/") == 0)
+      else if (aPath.find(lProcInstList) == 0)
         theType = LIST_INSTANCES;
     }
 

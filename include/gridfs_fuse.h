@@ -105,29 +105,6 @@ namespace gridfs
     const mongo::ConnectionString&
     connection_string();
 
-    bool
-    is_proc(const std::string& aPath, struct stat * aStBuf)
-    {
-      static std::string lProcPrefix = std::string(config.path_prefix) + "/proc";
-      syslog(LOG_DEBUG, "is_proc: path %s; prefix %s",
-          aPath.c_str(), lProcPrefix.c_str());
-      return aPath.find(lProcPrefix) == 0;
-    }
-
-    void
-    configure_path(const char* path, std::string& aRes)
-    {
-      aRes.reserve(256);
-      aRes.append(config.path_prefix);
-      aRes.append(path);
-      
-      // remove trailing / otherwise the path is not found in mongo
-      if (aRes.length() && aRes.at(aRes.length() - 1) == '/')
-      {
-        aRes.resize(aRes.length()-1);
-      }
-    }
-
     memcached_st*
     master() const { return theMaster; }
 
