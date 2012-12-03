@@ -1,6 +1,5 @@
 /*
- * Copyright 2008 28msec, Inc.
- * 
+ * Copyright 2012 28msec, Inc.
  */
 #include "filesystem_operations.h"
 #include <syslog.h>
@@ -8,7 +7,9 @@
 #include "filesystem_entry.h"
 #include "directory.h"
 #include "file.h"
+#include "proc.h"
 #include "symlink.h"
+#include "fileinfo.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -57,22 +58,30 @@ namespace gridfs
     {
       try
       {
-        // load information about the path   
-        gridfs::FilesystemEntry lEntry(lPath);
-
-        //check if path to file, dir or link does exist
-        if (!lEntry.exists())
+        if (FUSE.is_proc(lPath, aStBuf))
         {
-          syslog(LOG_DEBUG, "getattr: entry does not exists %s", lPath.c_str());
-          result = -ENOENT;
+          Proc lProc(lPath);
+          lProc.stat(aStBuf); 
         }
         else
         {
-          syslog(LOG_DEBUG, "getattr: entry exists %s", lPath.c_str());
-          lEntry.stat(aStBuf); 
+          // load information about the path   
+          FilesystemEntry lEntry(lPath);
 
-          m.set(lPath, aStBuf);
+          //check if path to file, dir or link does exist
+          if (!lEntry.exists())
+          {
+            syslog(LOG_DEBUG, "getattr: entry does not exists %s",
+                lPath.c_str());
+            result = -ENOENT;
+          }
+          else
+          {
+            syslog(LOG_DEBUG, "getattr: entry exists %s", lPath.c_str());
+            lEntry.stat(aStBuf); 
+          }
         }
+        m.set(lPath, aStBuf);
 
       } GRIDFS_CATCH
     }
@@ -95,10 +104,10 @@ namespace gridfs
     std::string lPath;
     FUSE.configure_path(path, lPath);
 
-    try{
-
+    try
+    {
       // init parameters to create dir
-      gridfs::Directory lDir(lPath);
+      Directory lDir(lPath);
       uid_t st_uid = FUSE.config.default_uid;
       gid_t st_gid = FUSE.config.default_gid;
       
@@ -124,7 +133,7 @@ namespace gridfs
 
     try
     {
-      gridfs::Directory lDir(lPath);
+      Directory lDir(lPath);
 
       // first check if it exists
       if (!lDir.exists())
@@ -146,7 +155,7 @@ namespace gridfs
 
     } GRIDFS_CATCH
 
-   return result;
+    return result;
   }
 
 
@@ -175,16 +184,19 @@ namespace gridfs
 	  off_t offset,
 	  struct fuse_file_info *fileinfo)
   {
-    //sanity
-    assert(fileinfo);
-    assert(fileinfo->fh);
-
     int result = 0;
-    gridfs::Directory* lDir = reinterpret_cast<gridfs::Directory*>(fileinfo->fh);
+    FileInfo* lInfo = reinterpret_cast<FileInfo*>(fileinfo->fh);
 
     try
     {
-      lDir->list(buf, filler);
+      switch (lInfo->type)
+      {
+        case FileInfo::DIRECTORY:
+          lInfo->directory->list(buf, filler); break;
+        case FileInfo::PROC:
+          lInfo->proc->list(buf, filler); break;
+        default: assert(false);
+      }
     } GRIDFS_CATCH
 
     return result;
@@ -211,25 +223,38 @@ namespace gridfs
     std::string lPath;
     FUSE.configure_path(path, lPath);
 
-    try{
-      gridfs::File* lFile = new gridfs::File(lPath);
+    try
+    {
+      std::auto_ptr<FileInfo> lInfo;
 
-      //check if file already exists
-      if (lFile->exists())
+      syslog(LOG_DEBUG, "create: %s", lPath.c_str());
+
+      if (FUSE.is_proc(lPath, 0))
       {
-	      result = -EEXIST;
+        lInfo.reset(new FileInfo(new Proc(lPath)));
+        lInfo->proc->create();
       }
       else
       {
-        // init parameters to create file or symlink
-        uid_t st_uid = FUSE.config.default_uid;
-        gid_t st_gid = FUSE.config.default_gid;
+        lInfo.reset(new FileInfo(new File(lPath)));
 
-        // create it in mongo
-        lFile->create(S_IFREG | mode, st_uid, st_gid, "");
+        //check if file already exists
+        if (lInfo->file->exists())
+        {
+	        result = -EEXIST;
+        }
+        else
+        {
+          // init parameters to create file or symlink
+          uid_t st_uid = FUSE.config.default_uid;
+          gid_t st_gid = FUSE.config.default_gid;
 
+          // create it in mongo
+          lInfo->file->create(S_IFREG | mode, st_uid, st_gid, "");
+
+        }
         // put pointer into fileinfo struct
-        fileinfo->fh = (uint64_t)lFile;          
+        fileinfo->fh = (uint64_t)lInfo.release();
       }
 
     } GRIDFS_CATCH
@@ -252,7 +277,7 @@ namespace gridfs
     try
     {
       // load information about the path   
-      gridfs::FilesystemEntry lEntry(lPath);
+      FilesystemEntry lEntry(lPath);
 
       //checd if path to file, dir or link does exist
       if (!lEntry.exists())
@@ -291,16 +316,28 @@ namespace gridfs
     std::string lPath;
     FUSE.configure_path(path, lPath);
 
+    std::auto_ptr<FileInfo> lInfo;
+
     try
     {
-      gridfs::File* lFile = new gridfs::File(lPath);
+      if (FUSE.is_proc(lPath, 0))
+      {
+        lInfo.reset(new FileInfo(new Proc(lPath)));
 
-      // assumption: don't check for lFile->exists() because getattr is always
-      // called before open
-      assert(lFile->exists());
+        if (!lInfo->proc->create())
+          result = -ENAMETOOLONG;
+      }
+      else
+      {
+        lInfo.reset(new FileInfo(new File(lPath)));
+
+        // assumption: don't check for lFile->exists() because getattr is always
+        // called before open
+        assert(lInfo->file->exists());
+      }
       
       // put pointer into fileinfo struct
-      fileinfo->fh = (uint64_t)lFile;          
+      fileinfo->fh = (uint64_t)lInfo.release();          
 
     } GRIDFS_CATCH
     
@@ -336,7 +373,7 @@ namespace gridfs
     syslog(LOG_DEBUG, "write: context path %s size %i offset %i",
         path, (int) size, (int) offset);
 
-    gridfs::File* lFile = reinterpret_cast<gridfs::File*>(fileinfo->fh);
+    File* lFile = reinterpret_cast<File*>(fileinfo->fh);
 
     try
     {
@@ -365,27 +402,35 @@ namespace gridfs
   int
   release(const char *path, struct fuse_file_info *fileinfo)
   {
-    assert(fileinfo);
-    assert(fileinfo->fh);
-
     int result = 0;
     std::string lPath;
     FUSE.configure_path(path, lPath);
-    gridfs::File* lFile = reinterpret_cast<gridfs::File*>(fileinfo->fh);
+
+    std::auto_ptr<FileInfo> lInfo(reinterpret_cast<FileInfo*>(fileinfo->fh));
 
     try
     {
-      // write changes to mongo if any
-      if (lFile->hasChanges())
+      
+      switch (lInfo->type)
       {
-        lFile->store();
-        Memcache m;
-        m.remove(lPath);
+        case FileInfo::FILE:
+        {
+          // write changes to mongo if any
+          if (lInfo->file->hasChanges())
+          {
+            lInfo->file->store();
+            Memcache m;
+            m.remove(lPath);
+          }
+          break;
+        }
+        default:
+        {
+          Memcache m;
+          m.remove(lPath);
+          break;
+        }
       }
-
-      // close file
-      delete lFile;
-      lFile = NULL; 
 
     } GRIDFS_CATCH
 
@@ -425,7 +470,7 @@ namespace gridfs
         lPath.c_str(), (int)offset, (int)size);
 #endif
 
-    gridfs::File* lFile = reinterpret_cast<gridfs::File*>(fileinfo->fh);
+    File* lFile = reinterpret_cast<File*>(fileinfo->fh);
 
     try
     {
@@ -448,27 +493,34 @@ namespace gridfs
   int
   opendir(const char *path, struct fuse_file_info *fileinfo)
   {
-    memset(fileinfo, 0, sizeof(struct fuse_file_info));
     int result = 0;
     std::string lPath;
     FUSE.configure_path(path, lPath);
 
-    try{
-     
-      //TODO DK: do we have to check permissions ourselves here? 
-      // http://openbook.galileocomputing.de/c_von_a_bis_z/017_c_dateien_verzeichnisse_001.htm
-      gridfs::Directory* lDir = new gridfs::Directory(lPath);
+    try
+    {
+      std::auto_ptr<FileInfo> lInfo;
 
-      // check if path to file, dir or link does exist
-      if (!lDir->exists())
+      if (FUSE.is_proc(lPath, 0))
       {
-        syslog(LOG_DEBUG, "opendir: directory does not exist %s", lPath.c_str());
-        delete lDir;
-        return -ENOENT;
+        lInfo.reset(new FileInfo(new Proc(lPath)));
+      }
+      else
+      {
+        //TODO DK: do we have to check permissions ourselves here? 
+        // http://openbook.galileocomputing.de/c_von_a_bis_z/017_c_dateien_verzeichnisse_001.htm
+        lInfo.reset(new FileInfo(new Directory(lPath)));
+      
+        if (!lInfo->directory->exists())
+        {
+          syslog(LOG_DEBUG, "opendir: directory does not exist %s",
+              lPath.c_str());
+          return -ENOENT;
+        }
       }
 
       // put pointer into fileinfo struct
-      fileinfo->fh = (uint64_t)lDir;          
+      fileinfo->fh = (uint64_t)lInfo.release();          
 
     } GRIDFS_CATCH
 
@@ -482,20 +534,14 @@ namespace gridfs
   int
   releasedir(const char *path, struct fuse_file_info *fileinfo)
   {
-    //sanity
-    assert(fileinfo);
-    assert(fileinfo->fh);
-
     int result = 0;
-    std::string lPath;
-    FUSE.configure_path(path, lPath);
 
-    gridfs::Directory* lDir = reinterpret_cast<gridfs::Directory*>(fileinfo->fh);
+    FileInfo* lInfo = reinterpret_cast<FileInfo*>(fileinfo->fh);
 
     try
     {
       // close dir
-      delete lDir;
+      delete lInfo;
     } GRIDFS_CATCH
 
     return result;
@@ -518,7 +564,7 @@ namespace gridfs
     try{
       //TODO DK: do we have to check permissions ourselves here? 
       // http://openbook.galileocomputing.de/c_von_a_bis_z/017_c_dateien_verzeichnisse_001.htm
-      gridfs::Symlink lSymlink(lNewPath);
+      Symlink lSymlink(lNewPath);
 
       //check if link already exists
       if(lSymlink.exists())
@@ -561,7 +607,7 @@ namespace gridfs
 
     try
     {
-      gridfs::Symlink lSymlink(lPath);
+      Symlink lSymlink(lPath);
 
       if (!lSymlink.exists())
       {
@@ -590,7 +636,7 @@ namespace gridfs
     try
     {
       // load information about the path   
-      gridfs::FilesystemEntry lEntry(lPath);
+      FilesystemEntry lEntry(lPath);
 
       //check if path to file, dir or link does exist
       if (!lEntry.exists())
@@ -621,7 +667,7 @@ namespace gridfs
 
     try
     {
-      gridfs::FilesystemEntry lEntry(lPath);
+      FilesystemEntry lEntry(lPath);
 
       if (!lEntry.exists())
       {
@@ -654,7 +700,7 @@ namespace gridfs
     try
     {
       // load information about the path   
-      gridfs::File lFile(lPath);
+      File lFile(lPath);
 
       //check if path to file does exist
       if(!lFile.exists())
@@ -695,10 +741,15 @@ namespace gridfs
     std::string lPath;
     FUSE.configure_path(path, lPath);
 
+    if (FUSE.is_proc(lPath, 0))
+    {
+      return 0;
+    }
+
     try 
     {
       // load information about the path
-      gridfs::File lFile(lPath);
+      File lFile(lPath);
 
       //check if path to file does exist
       if (!lFile.exists())

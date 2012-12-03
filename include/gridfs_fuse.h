@@ -8,6 +8,7 @@
 #include <string>
 #include <stddef.h>
 #include <stdio.h>
+#include <syslog.h>
 
 
 namespace mongo
@@ -104,6 +105,15 @@ namespace gridfs
     const mongo::ConnectionString&
     connection_string();
 
+    bool
+    is_proc(const std::string& aPath, struct stat * aStBuf)
+    {
+      static std::string lProcPrefix = std::string(config.path_prefix) + "/proc";
+      syslog(LOG_DEBUG, "is_proc: path %s; prefix %s",
+          aPath.c_str(), lProcPrefix.c_str());
+      return aPath.find(lProcPrefix) == 0;
+    }
+
     void
     configure_path(const char* path, std::string& aRes)
     {
@@ -117,6 +127,12 @@ namespace gridfs
         aRes.resize(aRes.length()-1);
       }
     }
+
+    memcached_st*
+    master() const { return theMaster; }
+
+    memcached_pool_st*
+    pool() const { return theMemcachePool; }
 
   protected:
     friend class Memcache;

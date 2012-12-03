@@ -8,6 +8,8 @@ SET(SRCS
   ${CMAKE_SOURCE_DIR}/src/filesystem_entry.cpp
   ${CMAKE_SOURCE_DIR}/src/directory.cpp
   ${CMAKE_SOURCE_DIR}/src/file.cpp
+  ${CMAKE_SOURCE_DIR}/src/proc.cpp
+  ${CMAKE_SOURCE_DIR}/src/fileinfo.cpp
   ${CMAKE_SOURCE_DIR}/src/symlink.cpp
   main.cpp)
 
