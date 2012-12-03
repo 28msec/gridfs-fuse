@@ -45,7 +45,16 @@ namespace gridfs
   is_proc(const std::string& aPath, struct stat * aStBuf)
   {
     static std::string lProcPrefix = std::string(FUSE.config.path_prefix) + "/proc";
-    return !aPath.compare(0, lProcPrefix.size(), lProcPrefix, 0, lProcPrefix.size());
+    static size_t lProcPrefixSize = lProcPrefix.size();
+
+    size_t lPathSize = aPath.size();
+
+    if (lPathSize == 0)
+      return false;
+
+    size_t lMin = std::min(lPathSize, lProcPrefixSize);
+    return (!aPath.compare(0, lMin, lProcPrefix)) &&
+      (lPathSize > lProcPrefixSize ? aPath[lProcPrefixSize]=='/' : true);
   }
 
   void
@@ -104,9 +113,9 @@ namespace gridfs
           {
             syslog(LOG_DEBUG, "getattr: entry exists %s", lPath.c_str());
             lEntry.stat(aStBuf); 
+            m.set(lPath, aStBuf);
           }
         }
-        m.set(lPath, aStBuf);
 
       } GRIDFS_CATCH
     }
