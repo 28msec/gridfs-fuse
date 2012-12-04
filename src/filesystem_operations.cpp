@@ -407,11 +407,23 @@ namespace gridfs
     syslog(LOG_DEBUG, "write: context path %s size %i offset %i",
         path, (int) size, (int) offset);
 
-    File* lFile = reinterpret_cast<File*>(fileinfo->fh);
+    FileInfo* lInfo = reinterpret_cast<FileInfo*>(fileinfo->fh);
 
     try
     {
-      result = lFile->write(data, size, offset);
+      switch (lInfo->type)
+      {
+        case FileInfo::FILE:
+        {
+          result = lInfo->file->write(data, size, offset);
+        }
+        break;
+        default:
+        {
+          // writing into proc not allowed
+          assert(false);
+        }
+      }
     } GRIDFS_CATCH
 
     return result;
@@ -504,11 +516,23 @@ namespace gridfs
         lPath.c_str(), (int)offset, (int)size);
 #endif
 
-    File* lFile = reinterpret_cast<File*>(fileinfo->fh);
+    FileInfo* lInfo = reinterpret_cast<FileInfo*>(fileinfo->fh);
 
     try
     {
-      result = lFile->read(buf, size, offset);
+      switch (lInfo->type)
+      {
+        case FileInfo::FILE:
+        {
+          result = lInfo->file->read(buf, size, offset);
+        }
+        break;
+        default:
+        {
+          // reading from proc file not allowed
+          assert(false);
+        }
+      }
     } GRIDFS_CATCH
 
     return result;

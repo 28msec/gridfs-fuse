@@ -1,0 +1,203 @@
+#!/bin/bash
+
+###################################################
+# @param1: variable value to check if set prefixed with _
+# @param2: log message on error
+check_var_value()
+{
+  if [ "$1" = "" ]
+  then
+    echo "check_var_value called without param 1 (prefix any variable with _)"
+    exit 1
+  fi
+  if [ "$2" = "" ]
+  then
+    echo "check_var_value called without param 2"
+    exit 1
+  fi
+
+  if [ "${1}" = "_" ]
+  then
+    throw_error "${__ERROR_MSG}"
+  fi
+}
+
+#######################################
+# @param1: error message
+throw_error()
+{
+  check_var_value "_$1" "throw_error called without param 1"
+
+  echo "[ERROR] ${1}"
+  exit 1
+}
+
+#######################################
+create_temp_mountpoint() 
+{
+  MOUNTPOINT=$( mktemp -d --suffix gridfs.test )
+  if [ "$?" != "0" ]
+  then
+    throw_error "failed to create temporary mountpoint"
+  fi
+  echo "[OK] created temporary MOUNTPOINT=${MOUNTPOINT}"
+}
+
+#######################################
+# @param1: mount point, e.g. /tmp/mydir
+start_gridfs() 
+{
+  check_var_value "_$1" "start_gridfs called without param 1"
+
+  if [ "$GRIDFS_PID" != "" ]
+  then
+    throw_error "gridfs already running. Please, stop it before restarting"
+  fi
+
+  local __MOUNTPOINT=$1
+  local __MONGO_OPTIONS="-o mongo_host=@MONGO_HOST@ -o mongo_port=@MONGO_PORT@ -o mongo_db=@MONGO_DB@"
+  @CMAKE_BINARY_DIR@/bin/gridfs $__MOUNTPOINT -f -o path_prefix=$__MOUNTPOINT $__MONGO_OPTIONS -o log_level=DEBUG &
+  GRIDFS_PID=$!
+  echo "[START] started gridfs ($GRIDFS_PID) $__MOUNTPOINT -> @MONGO_HOST@:@MONGO_PORT@/@MONGO_DB@"
+  local __SLEEP=2
+  echo "sleeping for $__SLEEP seconds..."
+  sleep $__SLEEP
+}
+
+#######################################
+function stop_gridfs() {
+  check_var_value "_$GRIDFS_PID" "GRIDFS_PID not set when stop_gridfs was called"
+
+  echo "[STOP] stopping gridfs $GRIDFS_PID"
+  kill $GRIDFS_PID
+  wait $GRIDFS_PID
+  [ $? -eq 0 ] || { throw_error "error stopping gridfs" ; }
+  GRIDFS_PID=
+}
+
+#######################################
+# @param1: cmd to run
+# @param2: database name (e.g admin )
+run_mongo_cmd()
+{
+  check_var_value "_$1" "run_mongo_cmd called without param 1"
+  check_var_value "_$2" "run_mongo_cmd called without param 2"
+
+  mongo --quiet --eval "${1}" "@MONGO_HOST@:@MONGO_PORT@/${2}"
+}
+
+#######################################
+assert_mongo_is_running()
+{
+  local __TEST=$( ps aux | grep mongod )
+  __TEST=$( echo $__TEST | grep mongodb )
+  if [ "$__TEST" = "" ]
+  then
+    throw_error "mongo db not running"
+  fi
+  echo "[OK] found mongo process"
+}
+assert_mongo_is_running
+
+#######################################
+assert_database_does_not_exist()
+{
+  local __CMD="db.adminCommand('listDatabases').databases.forEach( function (d) { return print(d.name); } )"
+  local __TEST=$( run_mongo_cmd "$__CMD" "admin" | grep "^@MONGO_DB@$" )
+  if [ "$__TEST" != "" ]
+  then
+    throw_error "database @MONGO_DB@ does already exist"
+  fi
+  echo "[OK] database @MONGO_DB@ does not exist"
+}
+# make sure the test database does not yet exist 
+# *BEFORE* trap_exit is registered
+assert_database_does_not_exist
+
+#######################################
+trap_exit()
+{
+  echo "[EXIT] shutting down..."
+  if [ "$GRIDFS_PID" != "" ]
+  then
+    stop_gridfs
+  fi
+  if [ "$MOUNTPOINT" != "" -a "$MOUNTPOINT" != "/" -a -e "$MOUNTPOINT" ]
+  then
+    echo "removing MOUNTPOINT dir $MOUNTPOINT"
+    rm -rf $MOUNTPOINT
+  fi
+  echo "trying to remove database: @MONGO_DB@"
+  run_mongo_cmd "printjson(db.dropDatabase())" "@MONGO_DB@"
+  echo "check log output in /var/log/syslog"
+  echo "Goodbye!"
+}
+# register trap_exit
+trap trap_exit EXIT
+
+#######################################
+# @param1: file path
+# @param2: error message
+function assert_file_exists() {
+  if [ -f "$1" ] 
+  then
+    echo "[OK] file exists: $1"
+  else
+    throw_error "$1: $2"
+  fi
+}
+
+#######################################
+# @param1: file path
+# @param2: expected content
+function assert_file_contains() {
+  if [ "X$2" = "X$(cat $1)" ] 
+  then
+    echo "[OK] file $1 contains: $2"
+  else
+    throw_error "$1: incorrect content"
+  fi
+}
+
+#######################################
+# @param1: file path
+# @param2: error message
+function assert_file_does_not_exist() {
+  if [ ! -f "$1" ] 
+  then
+    echo "[OK] file does not exist: $1"
+  else
+    throw_error "$1: $2"
+  fi
+}
+
+#######################################
+# @param1: dir path
+# @param2: error message
+function assert_dir_exists() {
+  if [ -d "$1" ] 
+  then
+    echo "[OK] dir exists: $1"
+  else
+    throw_error "$1: $2"
+  fi
+}
+
+#######################################
+# @param1: dir path
+# @param2: error message
+function assert_dir_does_not_exist() {
+  if [ ! -d "$1" ] 
+  then
+    echo "[OK] dir does not exist: $1"
+  else
+    throw_error "$1: $2"
+  fi
+}
+
+#######################################
+# @param1: file path
+function get_timestamps() {
+  @TIMESTAMP_CMD@ $1
+}
+

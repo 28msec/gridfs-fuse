@@ -4,6 +4,9 @@ PROJECT(GridFS)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0)
 
+# enable testing
+INCLUDE(CTest)
+
 IF (WIN32)
     MESSAGE(FATAL_ERROR "This is a fuse based filesystem that is not supported on windows. Sorry.")
 ENDIF (WIN32)

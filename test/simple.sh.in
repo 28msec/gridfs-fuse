@@ -1,85 +1,47 @@
 #!/bin/bash
 
-function start_gridfs() {
-  MOUNTPOINT=$1
-  LOGFILE=$2
-  MONGO_OPTIONS="-o mongo_host=@MONGO_HOST@ -o mongo_port=@MONGO_PORT@ -o mongo_db=sausalito_files"
-  $BUILD_DIR/bin/gridfs $MOUNTPOINT -s -f -o allow_other -o path_prefix=$MOUNTPOINT $MONGO_OPTIONS -o log_level=DEBUG -o log_file=$LOGFILE &
-  echo "started gridfs $!"
-  sleep 1
-}
+WORKING_DIR=$(cd $(dirname $0); pwd -P)
+. @CMAKE_CURRENT_BINARY_DIR@/commons.sh
 
-function stop_gridfs() {
-  GRIDFS_PID=$1
-  kill $GRIDFS_PID
-  wait $GRIDFS_PID
-  [ $? -eq 0 ] || { echo "error stopping gridfs" ; exit 1 ; }
-}
+# set var MOUNTPOINT
+create_temp_mountpoint
 
-function check_file_exists() {
-  [ -f "$1" ] || { echo "$1: $2" ; exit 1 ; }
-}
+#>>>>>>>>>
+start_gridfs $MOUNTPOINT 
 
-function check_file_contains() {
-  [ "X$2" = "X$(cat $1)" ] || { echo "$1: incorrect content" ; exit 1 ; }
-}
-
-function check_file_does_not_exist() {
-  [ ! -f "$1" ] || { echo "$1: $2" ; exit 1 ; }
-}
-
-function check_dir_exists() {
-  [ -d "$1" ] || { echo "$1: $2" ; exit 1 ; }
-}
-
-function check_dir_does_not_exist() {
-  [ ! -d "$1" ] || { echo "$1: $2" ; exit 1 ; }
-}
-
-function get_timestamps() {
-  @TIMESTAMP_CMD@ $1
-}
-
-export BUILD_DIR=@CMAKE_CURRENT_BINARY_DIR@/..
-export TMPDIR=/tmp
-
-MOUNTPOINT=$(mktemp -d $TMPDIR/gridtst.XXX)
-echo testing in $MOUNTPOINT
-LOGFILE=$(mktemp $TMPDIR/gridtst.log.XXX)
-echo logging to $LOGFILE
-
-start_gridfs $MOUNTPOINT $LOGFILE
-GRIDFS_PID=$!
-
-TESTFILE1=$MOUNTPOINT/f
-TESTDIR=$MOUNTPOINT/d
-TESTFILE2=$TESTDIR/f
+TESTFILE1="$MOUNTPOINT/f"
+TESTDIR="$MOUNTPOINT/d"
+TESTFILE2="$TESTDIR/f"
 TESTCONTENT="something"
+TESTPROC="$MOUNTPOINT/proc"
+TESTPROCINSTANCES="$MOUNTPOINT/proc/instances"
+TESTMEMCACHEINSTANCE="$MOUNTPOINT/proc/instances/localhost:11211"
 
 echo  $TESTCONTENT > $TESTFILE1
 mkdir $TESTDIR
 echo  $TESTCONTENT > $TESTFILE2
 
-check_file_exists $TESTFILE1 "failed to create"
-check_dir_exists  $TESTDIR   "failed to create"
-check_file_exists $TESTFILE2 "failed to create"
+assert_file_exists $TESTFILE1 "failed to create"
+assert_dir_exists  $TESTDIR   "failed to create"
+assert_file_exists $TESTFILE2 "failed to create"
 
 TS1=$(get_timestamps $TESTDIR)
 
-stop_gridfs $GRIDFS_PID
+stop_gridfs
+#################################################
 
-check_file_does_not_exist $TESTFILE1 "still exists"
-check_dir_does_not_exist  $TESTDIR   "still exists"
-check_file_does_not_exist $TESTFILE2 "still exists"
+assert_file_does_not_exist $TESTFILE1 "still exists"
+assert_dir_does_not_exist  $TESTDIR   "still exists"
+assert_file_does_not_exist $TESTFILE2 "still exists"
 
-start_gridfs $MOUNTPOINT $LOGFILE
-GRIDFS_PID=$!
+#>>>>>>>>>
+start_gridfs $MOUNTPOINT
 
-check_file_exists    $TESTFILE1 "failed to find after restart"
-check_file_contains  $TESTFILE1 $TESTCONTENT
-check_dir_exists     $TESTDIR   "failed to find after restart"
-check_file_exists    $TESTFILE2 "failed to find after restart"
-check_file_contains  $TESTFILE2 $TESTCONTENT
+assert_file_exists    $TESTFILE1 "failed to find after restart"
+assert_file_contains  $TESTFILE1 $TESTCONTENT
+assert_dir_exists     $TESTDIR   "failed to find after restart"
+assert_file_exists    $TESTFILE2 "failed to find after restart"
+assert_file_contains  $TESTFILE2 $TESTCONTENT
 
 TS2=$(get_timestamps $TESTDIR)
 [ "$TS1" = "$TS2" ] || { echo "inconsistent timestamp" ; exit 1 ; }
@@ -92,11 +54,18 @@ rm    $TESTFILE2
 rmdir $TESTDIR
 rm    $TESTFILE1
 
-check_file_does_not_exist $TESTFILE1 "failed to delete"
-check_dir_does_not_exist  $TESTDIR   "failed to delete"
-check_file_does_not_exist $TESTFILE2 "failed to delete"
+assert_file_does_not_exist $TESTFILE1 "failed to delete"
+assert_dir_does_not_exist  $TESTDIR   "failed to delete"
+assert_file_does_not_exist $TESTFILE2 "failed to delete"
 
 stop_gridfs $GRIDFS_PID
+#################################################
 
-rmdir $MOUNTPOINT
-rm    $LOGFILE
+#>>>>>>>>>
+start_gridfs $MOUNTPOINT
+
+assert_dir_exists $TESTPROC "/proc directory doesn't exist"
+assert_dir_exists $TESTPROCINSTANCES "/proc/instances directory doesn't exist"
+assert_file_exists $TESTMEMCACHEINSTANCE "/proc/instances/localhost:11211 file doesn't exist"
+
+stop_gridfs $GRIDFS_PID

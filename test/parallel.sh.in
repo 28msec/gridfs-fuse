@@ -1,0 +1,52 @@
+#!/bin/bash
+
+WORKING_DIR=$(cd $(dirname $0); pwd -P)
+. @CMAKE_CURRENT_BINARY_DIR@/commons.sh
+
+# set var MOUNTPOINT
+create_temp_mountpoint
+
+#################################################
+#>>>>>>>>>
+start_gridfs $MOUNTPOINT 
+
+TESTFILEPREFIX="$MOUNTPOINT/testfile"
+
+LIMIT=200
+FAILURES=0
+
+for ((a=1; a <= LIMIT; a++))
+do
+  cat "@CMAKE_CURRENT_SOURCE_DIR@/account.xqc" > "$TESTFILEPREFIX_$a" &
+done
+
+for BG_JOB in $( jobs -p )
+do
+  # don't wait for gridfs background job
+  TEST=$( ps aux | grep " $BG_JOB " | grep "bin/gridfs" )
+  if [ "$TEST" = "" ]
+  then
+    echo "waiting for $BG_JOB"
+    wait $BG_JOB || let "FAILURES+=1"
+  fi
+done
+
+if [ "$FAILURES" == "0" ];
+then
+  echo "created all files"
+else
+  throw_error "$FAILURES cat background processes failed"
+fi
+
+for ((a=1; a <= LIMIT; a++))
+do
+  assert_file_exists "$TESTFILEPREFIX_$a"
+  if diff -q "@CMAKE_CURRENT_SOURCE_DIR@/account.xqc" "$TESTFILEPREFIX_$a"
+  then
+    echo "file $TESTFILEPREFIX_$a is good"
+  else
+    throw_error "$TESTFILEPREFIX_$a: file is not good"
+  fi
+done
+
+stop_gridfs
