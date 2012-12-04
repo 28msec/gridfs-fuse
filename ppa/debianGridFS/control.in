@@ -8,7 +8,7 @@ Homepage: @PPA_HOMEPAGE@
 
 Package: @PPA_NAME@
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: memcached, ${shlibs:Depends}, ${misc:Depends}
 Description: GridFS
   GridFS is something ...
 
