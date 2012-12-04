@@ -8,6 +8,7 @@
 #include <string>
 #include <stddef.h>
 #include <stdio.h>
+#include <syslog.h>
 
 
 namespace mongo
@@ -104,19 +105,11 @@ namespace gridfs
     const mongo::ConnectionString&
     connection_string();
 
-    void
-    configure_path(const char* path, std::string& aRes)
-    {
-      aRes.reserve(256);
-      aRes.append(config.path_prefix);
-      aRes.append(path);
-      
-      // remove trailing / otherwise the path is not found in mongo
-      if (aRes.length() && aRes.at(aRes.length() - 1) == '/')
-      {
-        aRes.resize(aRes.length()-1);
-      }
-    }
+    memcached_st*
+    master() const { return theMaster; }
+
+    memcached_pool_st*
+    pool() const { return theMemcachePool; }
 
   protected:
     friend class Memcache;
