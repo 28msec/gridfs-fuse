@@ -1,6 +1,7 @@
 # Copyright 2010 28msec Inc.
 
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_SOURCE_DIR}/include)
+INCLUDE_DIRECTORIES(BEFORE ${CMAKE_SOURCE_DIR}/src)
 
 SET(SRCS
   ${CMAKE_SOURCE_DIR}/src/filesystem_operations.cpp
