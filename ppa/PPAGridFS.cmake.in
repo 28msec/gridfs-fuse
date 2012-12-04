@@ -17,7 +17,7 @@ SET(PPA_DISTROS "precise")
 SET(PPA_VERSION "@GRIDFS_MAJOR_VERSION@.@GRIDFS_MINOR_VERSION@.@GRIDFS_PATCH_VERSION@")
 
 SET(PPA_DEPENDENCIES "libmongo-cxx-driver-dev, debhelper, cmake, libfuse-dev, libboost-system-dev, libmemcached-dev")
-SET(PPA_HOST "ppa:28msec/utils")
+SET(PPA_HOST "ppa:28msec/sausalito")
 EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
 
 # compute PPA_MAINTAINER by reading bzr whoami
