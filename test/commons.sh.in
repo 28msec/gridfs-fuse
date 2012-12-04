@@ -56,7 +56,7 @@ start_gridfs()
 
   local __MOUNTPOINT=$1
   local __MONGO_OPTIONS="-o mongo_host=@MONGO_HOST@ -o mongo_port=@MONGO_PORT@ -o mongo_db=@MONGO_DB@"
-  @CMAKE_BINARY_DIR@/bin/gridfs $__MOUNTPOINT -s -f -o path_prefix=$__MOUNTPOINT $__MONGO_OPTIONS -o log_level=DEBUG &
+  @CMAKE_BINARY_DIR@/bin/gridfs $__MOUNTPOINT -f -o path_prefix=$__MOUNTPOINT $__MONGO_OPTIONS -o log_level=DEBUG &
   GRIDFS_PID=$!
   echo "[START] started gridfs ($GRIDFS_PID) $__MOUNTPOINT -> @MONGO_HOST@:@MONGO_PORT@/@MONGO_DB@"
   local __SLEEP=2

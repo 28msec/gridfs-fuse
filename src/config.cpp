@@ -173,19 +173,5 @@ namespace gridfs
     return lConString;
   }
 
-  const std::string
-  Fuse::configure_path(const char* path)
-  {
-    std::string lpath(config.path_prefix);
-    lpath.append(path);
-    
-    // remove trailing / otherwise the path is not found in mongo
-    if (lpath.at(lpath.length()-1) == '/'){
-      lpath.resize(lpath.length()-1);
-    }
-
-    return lpath;
-  }
-
   Fuse FUSE;
 }

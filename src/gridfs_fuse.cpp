@@ -302,7 +302,9 @@ namespace gridfs
     size_t lLength  = 0;
     memcached_return_t rc;
 
-    char* lResult = memcached_get(m, aPath.c_str(), aPath.size(), &lLength, &lFlags, &rc); 
+    std::string lKey = "a:" + aPath;
+
+    char* lResult = memcached_get(m, lKey.c_str(), lKey.size(), &lLength, &lFlags, &rc); 
 
     if (lResult)
     {
@@ -323,7 +325,9 @@ namespace gridfs
     uint32_t lFlags = 0;
     memcached_return_t rc;
 
-    rc = memcached_set(m, aPath.c_str(), aPath.size(), (const char*) aBuf, sizeof(struct stat), 0, lFlags);
+    std::string lKey = "a:" + aPath;
+
+    rc = memcached_set(m, lKey.c_str(), lKey.size(), (const char*) aBuf, sizeof(struct stat), 0, lFlags);
   }
 
   void
@@ -331,7 +335,9 @@ namespace gridfs
   {
     memcached_return_t rc;
 
-    rc = memcached_delete(m, aPath.c_str(), aPath.size(), 0);
+    std::string lKey = "a:" + aPath;
+
+    rc = memcached_delete(m, lKey.c_str(), lKey.size(), 0);
   }
 
 }

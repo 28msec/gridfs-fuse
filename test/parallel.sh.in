@@ -1,0 +1,36 @@
+#!/bin/bash
+
+WORKING_DIR=$(cd $(dirname $0); pwd -P)
+. @CMAKE_CURRENT_BINARY_DIR@/commons.sh
+
+# set var MOUNTPOINT
+create_temp_mountpoint
+
+#################################################
+#>>>>>>>>>
+start_gridfs $MOUNTPOINT 
+
+TESTFILEPREFIX="$MOUNTPOINT/testfile"
+
+LIMIT=200
+
+for ((a=1; a <= LIMIT; a++))
+do
+  cat "@CMAKE_CURRENT_SOURCE_DIR@/account.xqc" > "$TESTFILEPREFIX_$a" &
+done
+
+sleep 2
+echo "created files"
+
+for ((a=1; a <= LIMIT; a++))
+do
+  assert_file_exists "$TESTFILEPREFIX_$a"
+  if diff -q "@CMAKE_CURRENT_SOURCE_DIR@/account.xqc" "$TESTFILEPREFIX_$a"
+  then
+    echo "file $TESTFILEPREFIX_$a is good"
+  else
+    throw_error "$TESTFILEPREFIX_$a: file is not good"
+  fi
+done
+
+stop_gridfs

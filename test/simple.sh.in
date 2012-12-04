@@ -9,10 +9,13 @@ create_temp_mountpoint
 #>>>>>>>>>
 start_gridfs $MOUNTPOINT 
 
-TESTFILE1=$MOUNTPOINT/f
-TESTDIR=$MOUNTPOINT/d
-TESTFILE2=$TESTDIR/f
+TESTFILE1="$MOUNTPOINT/f"
+TESTDIR="$MOUNTPOINT/d"
+TESTFILE2="$TESTDIR/f"
 TESTCONTENT="something"
+TESTPROC="$MOUNTPOINT/proc"
+TESTPROCINSTANCES="$MOUNTPOINT/proc/instances"
+TESTMEMCACHEINSTANCE="$MOUNTPOINT/proc/instances/localhost:11211"
 
 echo  $TESTCONTENT > $TESTFILE1
 mkdir $TESTDIR
@@ -58,3 +61,11 @@ assert_file_does_not_exist $TESTFILE2 "failed to delete"
 stop_gridfs $GRIDFS_PID
 #################################################
 
+#>>>>>>>>>
+start_gridfs $MOUNTPOINT
+
+assert_dir_exists $TESTPROC "/proc directory doesn't exist"
+assert_dir_exists $TESTPROCINSTANCES "/proc/instances directory doesn't exist"
+assert_file_exists $TESTMEMCACHEINSTANCE "/proc/instances/localhost:11211 file doesn't exist"
+
+stop_gridfs $GRIDFS_PID

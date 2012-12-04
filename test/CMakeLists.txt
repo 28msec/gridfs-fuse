@@ -8,6 +8,7 @@ ELSE(APPLE)
 ENDIF(APPLE)
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/simple.sh.in ${CMAKE_CURRENT_BINARY_DIR}/simple.sh @ONLY)
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/parallel.sh.in ${CMAKE_CURRENT_BINARY_DIR}/parallel.sh @ONLY)
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/commons.sh.in ${CMAKE_CURRENT_BINARY_DIR}/commons.sh @ONLY)
 
 ######
@@ -25,3 +26,4 @@ ENDMACRO(GRIDFS_ADD_TEST)
 
 # register tests
 GRIDFS_ADD_TEST("gridfs-fuse-simple" simple.sh)
+GRIDFS_ADD_TEST("gridfs-fuse-parallel" multiple.sh)
