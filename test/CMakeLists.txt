@@ -26,4 +26,4 @@ ENDMACRO(GRIDFS_ADD_TEST)
 
 # register tests
 GRIDFS_ADD_TEST("gridfs-fuse-simple" simple.sh)
-GRIDFS_ADD_TEST("gridfs-fuse-parallel" multiple.sh)
+GRIDFS_ADD_TEST("gridfs-fuse-parallel" parallel.sh)
