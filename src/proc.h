@@ -3,11 +3,11 @@
  */
 #pragma once
 
+#include "gridfs_fuse.h"
 #include <mongo/client/gridfs.h>
 #include <mongo/client/connpool.h>
 #include <sys/stat.h>
 #include <string>
-#include "gridfs_fuse.h"
 
 namespace gridfs {
 

@@ -1,6 +1,7 @@
 /*
  * Copyright 2012 28msec, Inc.
  */
+#include "gridfs_fuse.h"
 #include "proc.h"
 
 #include <syslog.h>
@@ -9,9 +10,6 @@
 #include <stdlib.h>
 #include <libmemcached/memcached.h>
 #include <libmemcached/util/pool.h>
-
-#include "gridfs_fuse.h"
-
 
 namespace gridfs {
 
