@@ -1,3 +1,4 @@
+#pragma once
 /*
  * Copyright 2008 28msec, Inc.
  * 

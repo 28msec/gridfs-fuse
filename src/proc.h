@@ -3,11 +3,11 @@
  */
 #pragma once
 
+#include "gridfs_fuse.h"
 #include <mongo/client/gridfs.h>
 #include <mongo/client/connpool.h>
 #include <sys/stat.h>
 #include <string>
-#include "gridfs_fuse.h"
 
 namespace gridfs {
 
@@ -23,6 +23,9 @@ namespace gridfs {
         = std::string(FUSE.config.path_prefix) + "/proc/instances";
       static std::string lProcInstList
         = std::string(FUSE.config.path_prefix) + "/proc/instances/";
+
+      // needed for substr
+      thePrefixLength = lProcInstList.length();
 
       if (aPath == lProc)
         theType = ROOT;
@@ -54,6 +57,7 @@ namespace gridfs {
     } theType;
 
     const std::string thePath;
+    int thePrefixLength;
   };
 
 }
