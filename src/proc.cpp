@@ -71,7 +71,7 @@ namespace gridfs {
   bool
   Proc::create()
   {
-    std::string lNewServer = thePath.substr(16);
+    std::string lNewServer = thePath.substr(thePrefixLength);
     int lNewPort = 11211;
 
     size_t lIndexOfColon = lNewServer.find_last_of(':');

@@ -24,6 +24,9 @@ namespace gridfs {
       static std::string lProcInstList
         = std::string(FUSE.config.path_prefix) + "/proc/instances/";
 
+      // needed for substr
+      thePrefixLength = lProcInstList.length();
+
       if (aPath == lProc)
         theType = ROOT;
       else if (aPath == lProcInst)
@@ -54,6 +57,7 @@ namespace gridfs {
     } theType;
 
     const std::string thePath;
+    int thePrefixLength;
   };
 
 }
