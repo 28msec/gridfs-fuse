@@ -6,6 +6,7 @@ INCLUDE_DIRECTORIES(BEFORE ${CMAKE_SOURCE_DIR}/src)
 SET(SRCS
   ${CMAKE_SOURCE_DIR}/src/filesystem_operations.cpp
   ${CMAKE_SOURCE_DIR}/src/gridfs_fuse.cpp
+  ${CMAKE_SOURCE_DIR}/src/auth_hook.cpp
   ${CMAKE_SOURCE_DIR}/src/filesystem_entry.cpp
   ${CMAKE_SOURCE_DIR}/src/directory.cpp
   ${CMAKE_SOURCE_DIR}/src/file.cpp

@@ -11,6 +11,7 @@
 
 #include "filesystem_operations.h"
 #include "filesystem_entry.h"
+#include "auth_hook.h"
 
 
 namespace gridfs 
@@ -218,6 +219,19 @@ namespace gridfs
     }
 
     theMemcachePool = memcached_pool_create(theMaster, 100, 200);
+
+    // enable mongo authentication if username given
+    if (strcmp(config.mongo_user, "") != 0)
+    {
+      // the incode documentation says that addHook() function passes
+      // ownership to the pool
+      // https://github.com/mongodb/mongo/blob/master/src/mongo/client/connpool.h
+      AuthHook* lAuthHook = new AuthHook(config.mongo_db,
+                                         config.mongo_user,
+                                         config.mongo_password);
+      mongo::pool.addHook(lAuthHook);
+    }
+
   }
 
   void
