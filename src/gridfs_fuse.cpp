@@ -22,8 +22,7 @@ namespace gridfs
   // here: mapping to config struct
 #define GRIDFS_OPT(t, p, v) { t, offsetof(struct gridfs_config, p), v }
   fuse_opt Fuse::opts[] = {
-     GRIDFS_OPT("mongo_host=%s", mongo_host, 0),
-     GRIDFS_OPT("mongo_port=%s", mongo_port, 0),
+     GRIDFS_OPT("mongo_conn_string=%s", mongo_conn_string, 0),
      GRIDFS_OPT("mongo_user=%s", mongo_user, 0),
      GRIDFS_OPT("mongo_password=%s", mongo_password, 0),
      GRIDFS_OPT("mongo_db=%s", mongo_db, 0),
@@ -66,8 +65,7 @@ namespace gridfs
         << "  -o mongo_db=STRING                 database name in mongo db in which to save the gridfs collections" << std::endl
         << std::endl
         << "optional GRIDFS options:" << std::endl
-        << "  -o mongo_host=STRING               hostname or ip of the host to connect to (default: localhost)" << std::endl
-        << "  -o mongo_port=STRING               port on which the mongo db is running (default: 27017)" << std::endl
+        << "  -o mongo_conn_string=STRING        connection string (e.g. replica-set/host:port,host:port; default: localhost:27017)" << std::endl
         << "  -o mongo_user=STRING               user name for mongo db authentication" << std::endl
         << "  -o mongo_password=STRING           password for mongo db authentication" << std::endl
         << "  -o mongo_collection_prefix=STRING  prefix for the gridfs collections (default: fs)" << std::endl
@@ -125,8 +123,7 @@ namespace gridfs
   void
   Fuse::init(int argc, char **argv)
   {
-    config.mongo_host = (char*)"localhost";
-    config.mongo_port = (char*)"27017";
+    config.mongo_conn_string = (char*)"localhost:27017";
     config.mongo_user = (char*)"";
     config.mongo_password = (char*)"";
     config.mongo_db = (char*)"";
@@ -269,11 +266,8 @@ namespace gridfs
 
     if (!lConString.isValid())
     {
-      std::string port = config.mongo_port;
-      std::string host = config.mongo_host;
-      std::string url = host + (port==""?"":":") + port;
       std::string errmsg;
-      lConString = mongo::ConnectionString::parse( url , errmsg );
+      lConString = mongo::ConnectionString::parse( config.mongo_conn_string, errmsg );
       if (!lConString.isValid())
       {
         syslog(LOG_ERR, "invalid connection string (%s)", errmsg.c_str());

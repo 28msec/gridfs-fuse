@@ -33,8 +33,7 @@ namespace gridfs
   struct 
   gridfs_config 
   {
-    char* mongo_host;
-    char* mongo_port;
+    char* mongo_conn_string;
     char* mongo_user;
     char* mongo_password;
     char* mongo_db;
