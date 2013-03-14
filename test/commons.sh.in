@@ -55,11 +55,20 @@ start_gridfs()
   fi
 
   local __MOUNTPOINT=$1
-  local __MONGO_OPTIONS="-o mongo_host=@MONGO_HOST@ -o mongo_port=@MONGO_PORT@ -o mongo_db=@MONGO_DB@"
+  local __MONGO_OPTIONS="-o mongo_conn_string=@MONGO_CONN_STRING@ -o mongo_db=@MONGO_DB@"
+  if [ "@MONGO_USER@" != "" ]
+  then
+    __MONGO_OPTIONS="${__MONGO_OPTIONS} -o mongo_user=@MONGO_USER@ -o mongo_password=@MONGO_PASSWORD@"
+  fi
   @CMAKE_BINARY_DIR@/bin/gridfs $__MOUNTPOINT -f -o path_prefix=$__MOUNTPOINT $__MONGO_OPTIONS -o log_level=DEBUG &
   GRIDFS_PID=$!
-  echo "[START] started gridfs ($GRIDFS_PID) $__MOUNTPOINT -> @MONGO_HOST@:@MONGO_PORT@/@MONGO_DB@"
+  echo "[START] started gridfs ($GRIDFS_PID) $__MOUNTPOINT -> @MONGO_CONN_STRING@/@MONGO_DB@"
   local __SLEEP=2
+  if [[ "@MONGO_CONN_STRING@" != *localhost* ]]
+  then
+    echo "running against remote mongo"
+    __SLEEP=10
+  fi
   echo "sleeping for $__SLEEP seconds..."
   sleep $__SLEEP
 }
@@ -68,11 +77,19 @@ start_gridfs()
 function stop_gridfs() {
   check_var_value "_$GRIDFS_PID" "GRIDFS_PID not set when stop_gridfs was called"
 
-  echo "[STOP] stopping gridfs $GRIDFS_PID"
-  kill $GRIDFS_PID
-  wait $GRIDFS_PID
-  [ $? -eq 0 ] || { throw_error "error stopping gridfs" ; }
-  GRIDFS_PID=
+  local __GRIDFS_TEST=$( ps aux | grep $GRIDFS_PID )
+  if [ "$__GRIDFS_TEST" = "" ]
+  then
+    echo "process $__GRIDFS_TEST has already stopped running"
+  else
+    echo "[STOP] stopping gridfs $GRIDFS_PID"
+    kill $GRIDFS_PID
+    wait $GRIDFS_PID
+    local __RES=$?
+    # SIGTERM=143
+    [ $__RES -eq 0 ] || [ $__RES -eq 143 ] || { throw_error "error stopping gridfs (CODE $__RES)" ; }
+    GRIDFS_PID=
+  fi
 }
 
 #######################################
@@ -83,7 +100,17 @@ run_mongo_cmd()
   check_var_value "_$1" "run_mongo_cmd called without param 1"
   check_var_value "_$2" "run_mongo_cmd called without param 2"
 
-  mongo --quiet --eval "${1}" "@MONGO_HOST@:@MONGO_PORT@/${2}"
+  if [ "@MONGO_ADMIN_USER@" != "" ]
+  then
+    echo -e "${1}" | mongo -u "@MONGO_ADMIN_USER@" -p "@MONGO_ADMIN_PASSWORD@" --quiet "@MONGO_CONN_STRING@/${2}"
+  else
+    if [ "@MONGO_USER@" != "" ]
+    then
+      echo -e "${1}" | mongo -u "@MONGO_USER@" -p "@MONGO_PASSWORD@" --quiet "@MONGO_CONN_STRING@/${2}"
+    else
+      echo -e "${1}" | mongo --quiet "@MONGO_CONN_STRING@/${2}"
+    fi
+  fi
 }
 
 #######################################
@@ -115,6 +142,23 @@ assert_database_does_not_exist()
 assert_database_does_not_exist
 
 #######################################
+assert_user_exists()
+{
+  if [ "@MONGO_USER@" != "" ]
+  then
+    local __CMD="use @MONGO_DB@\ndb.addUser('@MONGO_USER@','@MONGO_PASSWORD@')"
+    local __TEST=$( run_mongo_cmd "$__CMD" "admin" | grep ".ok. : 1" )
+    if [ "$__TEST" = "" ]
+    then
+      throw_error "failed to create user @MONGO_USER@"
+    fi
+    echo "[OK] created user @MONGO_USER@"
+  fi
+}
+# only executed if MONGO_USER was set
+assert_user_exists
+
+#######################################
 trap_exit()
 {
   echo "[EXIT] shutting down..."
@@ -128,7 +172,7 @@ trap_exit()
     rm -rf $MOUNTPOINT
   fi
   echo "trying to remove database: @MONGO_DB@"
-  run_mongo_cmd "printjson(db.dropDatabase())" "@MONGO_DB@"
+  run_mongo_cmd "use @MONGO_DB@\nprintjson(db.dropDatabase())" "admin"
   echo "check log output in /var/log/syslog"
   echo "Goodbye!"
 }

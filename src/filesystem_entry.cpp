@@ -233,7 +233,7 @@ namespace gridfs {
   FilesystemEntry::synchonizeUpdate()
   {
     mongo::BSONObj lErrorObj = theConnection->getLastErrorDetailed();
-    if (lErrorObj.getField("err").ok())
+    if (lErrorObj.getField("err").ok() && !lErrorObj.getField("err").isNull())
     {
       std::stringstream lErrorMsg;
       lErrorMsg << "An update operation failed: " << lErrorObj.jsonString();

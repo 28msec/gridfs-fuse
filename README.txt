@@ -50,8 +50,7 @@ The -f option keeps the process running in the foreground
 
 Some MongoDB related options are:
 
--o mongo_host=STRING               hostname or ip of the host to connect to (default: localhost)
--o mongo_port=STRING               port on which the mongo db is running (default: 27017)
+-o mongo_conn_string=STRING        connection string (e.g. "replica-set/host:port\,host:port"; default: localhost:27017)
 -o mongo_user=STRING               user name for mongo db authentication
 -o mongo_password=STRING           password for mongo db authentication
 -o mongo_collection_prefix=STRING  prefix for the gridfs collections (default: fs)
