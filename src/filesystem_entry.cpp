@@ -5,6 +5,7 @@
 #include <ctime>
 #include <stdexcept>
 #include <sstream>
+#include "mongo/bson/bsonobj.h"
 
 namespace gridfs {
 
@@ -232,8 +233,7 @@ namespace gridfs {
   FilesystemEntry::synchonizeUpdate()
   {
     mongo::BSONObj lErrorObj = theConnection->getLastErrorDetailed();
-    const bool lHasError = ! lErrorObj.getField("err").isNull();
-    if (lHasError)
+    if (lErrorObj.getField("err").ok() && !lErrorObj.getField("err").isNull())
     {
       std::stringstream lErrorMsg;
       lErrorMsg << "An update operation failed: " << lErrorObj.jsonString();

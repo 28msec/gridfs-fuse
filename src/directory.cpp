@@ -50,7 +50,7 @@ namespace gridfs {
     const std::string lRegex = "^" + pathregex() + "/[^/]*$";
     mongo::BSONObj lQuery = BSON("filename" << BSON("$regex" << lRegex));
 
-    return theGridFS.list(lQuery).release();
+    return gridfs().list(lQuery).release();
   }
   
   const std::string

@@ -7,6 +7,7 @@ WORKING_DIR=$(cd $(dirname $0); pwd -P)
 create_temp_mountpoint
 
 #>>>>>>>>>
+echo "#####################################"
 start_gridfs $MOUNTPOINT 
 
 TESTFILE1="$MOUNTPOINT/f"
@@ -35,6 +36,7 @@ assert_dir_does_not_exist  $TESTDIR   "still exists"
 assert_file_does_not_exist $TESTFILE2 "still exists"
 
 #>>>>>>>>>
+echo "#####################################"
 start_gridfs $MOUNTPOINT
 
 assert_file_exists    $TESTFILE1 "failed to find after restart"
@@ -62,6 +64,7 @@ stop_gridfs $GRIDFS_PID
 #################################################
 
 #>>>>>>>>>
+echo "#####################################"
 start_gridfs $MOUNTPOINT
 
 assert_dir_exists $TESTPROC "/proc directory doesn't exist"
