@@ -234,7 +234,8 @@ namespace gridfs
   void
   Fuse::createRootDir()
   {
-    gridfs::FilesystemEntry lEntry("");
+    std::string lRootDir = config.path_prefix;
+    gridfs::FilesystemEntry lEntry(lRootDir);
     if (!lEntry.exists())
     {
       mode_t mode = S_IFDIR | 0755;
