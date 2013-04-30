@@ -103,7 +103,6 @@ namespace gridfs {
     }
     memcached_pool_st* lPool = FUSE.pool();
     memcached_server_add(lMaster, lNewServer.c_str(), lNewPort);
-    memcached_pool_behavior_set(lPool, MEMCACHED_BEHAVIOR_SORT_HOSTS, 1);
     return true;
   }
 

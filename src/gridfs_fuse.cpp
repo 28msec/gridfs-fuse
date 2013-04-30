@@ -216,6 +216,7 @@ namespace gridfs
     }
 
     theMemcachePool = memcached_pool_create(theMaster, 100, 200);
+    memcached_pool_behavior_set(theMemcachePool, MEMCACHED_BEHAVIOR_KETAMA, 1);
 
     // enable mongo authentication if username given
     if (strcmp(config.mongo_user, "") != 0)
