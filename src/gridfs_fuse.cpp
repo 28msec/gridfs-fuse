@@ -202,20 +202,9 @@ namespace gridfs
       exit(1);
     }
     
-    memcached_return rc;
     theMaster = memcached_create(NULL);
-    theServers = memcached_server_list_append(theServers, "localhost", 11211, &rc);
-    rc = memcached_server_push(theMaster, theServers);
-
-    if (rc != MEMCACHED_SUCCESS)
-    {
-      std::cerr
-        << "could not connect to memcached (" << memcached_strerror(theMaster, rc) << ")"
-        << std::endl;
-      exit(2);
-    }
-
     theMemcachePool = memcached_pool_create(theMaster, 100, 200);
+    memcached_pool_behavior_set(theMemcachePool, MEMCACHED_BEHAVIOR_KETAMA, 1);
 
     // enable mongo authentication if username given
     if (strcmp(config.mongo_user, "") != 0)
