@@ -20,11 +20,11 @@ Build & Installation
 
 In order to build the filesystem module, the following dependencies
 need to be met:
-- CMake
+- CMake >= 2.6
 - libfuse-dev
 - libmemcached-dev
-- MongoDB Driver
-- boost system 1.42
+- MongoDB Driver >= 2.6.1
+- boost system >= 1.49
 
 To build the module, you need to configure a build directory using
 CMake and use make to do the actual build.
