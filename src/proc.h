@@ -4,6 +4,8 @@
 #pragma once
 
 #include "gridfs_fuse.h"
+
+#include <mongo/client/redef_macros.h> //To fix ill-defined macros
 #include <mongo/client/gridfs.h>
 #include <mongo/client/connpool.h>
 #include <sys/stat.h>
