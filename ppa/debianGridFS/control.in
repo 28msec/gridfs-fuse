@@ -2,7 +2,7 @@ Source: @PPA_NAME@
 Section: devel
 Priority: extra
 Maintainer: @PPA_MAINTAINER@
-Build-Depends: @PPA_DEPENDENCIES@
+Build-Depends: @PPA_BUILD_DEPENDENCIES@
 Standards-Version: 3.9.3
 Homepage: @PPA_HOMEPAGE@
 

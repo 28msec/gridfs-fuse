@@ -1,37 +1,19 @@
 # Before execute, please check if the following variables are set correctly in the first lines of the script:
 # - PPA_MAINTAINER: master of ppa generation, can be passed via -D cmake option
-# - PPA_NAME: name of ppa acount, can be passed via -D cmake option
-# - PPA_REVISION: Debian revision number of the generated package, can be chaged via -D cmake option
 # - PPA_HOMEPAGE: homepage set in generated package
 # - PPA_DISTROS: ubuntu distributions for which a package is generated and uploaded
 
-IF (NOT PPA_NAME)
-  SET(PPA_NAME "gridfs")
-ENDIF()
-IF (NOT PPA_REVISION)
-  SET(PPA_REVISION "11")
-ENDIF()
-
+SET(PPA_NAME "gridfs")
 SET(PPA_HOMEPAGE "http://www.28msec.com/")
 SET(PPA_DISTROS "precise")
-SET(PPA_VERSION "@GRIDFS_MAJOR_VERSION@.@GRIDFS_MINOR_VERSION@.@GRIDFS_PATCH_VERSION@")
+SET(PPA_VERSION "2.6.1")
+SET(PPA_UPSTREAM_VERSION "1")
+SET(PPA_MAINTAINER "Federico Cavalieri <f@28.io>")
 
-SET(PPA_DEPENDENCIES "libmongo-cxx-driver-dev, debhelper, cmake, libfuse-dev, libboost-system-dev, libmemcached-dev")
-SET(PPA_HOST "ppa:28msec/sausalito")
+
+SET(PPA_BUILD_DEPENDENCIES "libmongo-cxx-driver-dev, debhelper, cmake, libfuse-dev, libboost-system-dev, libmemcached-dev")
+SET(PPA_HOST "ppa:28msec/experimental")
 EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
-
-IF (NOT PPA_MAINTAINER)
-  # compute PPA_MAINTAINER by reading bzr whoami
-  EXECUTE_PROCESS(
-    COMMAND bzr whoami
-    OUTPUT_VARIABLE PPA_MAINTAINER
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE RETURN_CODE)
-
-  IF (NOT RETURN_CODE EQUAL 0)
-    MESSAGE(FATAL_ERROR "bzr whoami failed")
-  ENDIF (NOT RETURN_CODE EQUAL 0)
-ENDIF (NOT PPA_MAINTAINER)
 
 SET(PPA_DIR "@CMAKE_CURRENT_BINARY_DIR@/ppaingGridFS")
 SET(PPA_SOURCE_DIR "${PPA_DIR}/${PPA_NAME}-${PPA_VERSION}")
@@ -56,7 +38,7 @@ EXECUTE_PROCESS(
 
 FOREACH(PPA_DISTRO ${PPA_DISTROS})
   EXECUTE_PROCESS(
-    COMMAND cp ${PPA_NAME}_${PPA_VERSION}.orig.tar.gz ${PPA_NAME}_${PPA_VERSION}~${PPA_DISTRO}${PPA_REVISION}.orig.tar.gz
+    COMMAND cp ${PPA_NAME}_${PPA_VERSION}.orig.tar.gz ${PPA_NAME}_${PPA_VERSION}~${PPA_DISTRO}${PPA_UPSTREAM_VERSION}.orig.tar.gz
     WORKING_DIRECTORY ${PPA_DIR})
 
   MESSAGE(STATUS "Creating configration files for ${PPA_DISTRO}.")
@@ -77,7 +59,7 @@ FOREACH(PPA_DISTRO ${PPA_DISTROS})
     MESSAGE(FATAL_ERROR "Debian package generation failed")
   ENDIF (NOT RETURN_CODE EQUAL 0)
 
-  SET(DEBIAN_CHANGES_FILE "${PPA_NAME}_${PPA_VERSION}~${PPA_DISTRO}${PPA_REVISION}_source.changes")
+  SET(DEBIAN_CHANGES_FILE "${PPA_NAME}_${PPA_VERSION}~${PPA_DISTRO}${PPA_UPSTREAM_VERSION}_source.changes")
   MESSAGE(STATUS "dputting ${DEBIAN_CHANGES_FILE}.")
   EXECUTE_PROCESS(
     COMMAND dput ${PPA_HOST} ${DEBIAN_CHANGES_FILE}

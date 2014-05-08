@@ -1,4 +1,4 @@
-@PPA_NAME@ (@PPA_VERSION@~@PPA_DISTRO@@PPA_REVISION@) @PPA_DISTRO@; urgency=high
+@PPA_NAME@ (@PPA_VERSION@~@PPA_DISTRO@@PPA_UPSTREAM_VERSION@) @PPA_DISTRO@; urgency=high
 
   *Updated to current Version
 

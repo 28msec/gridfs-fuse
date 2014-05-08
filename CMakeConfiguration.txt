@@ -1,9 +1,4 @@
 # Copyright 2010 28msec Inc.
-
-SET(GRIDFS_MAJOR_VERSION "0")
-SET(GRIDFS_MINOR_VERSION "8")
-SET(GRIDFS_PATCH_VERSION "0")
-
 SET(MONGO_DB "gridfs_ctests" CACHE STRING "MONGO DB name for testing gridfs")
 SET(MONGO_ADMIN_USER "" CACHE STRING "MONGO Admin User name for testing gridfs")
 SET(MONGO_ADMIN_PASSWORD "" CACHE STRING "MONGO Admin Password for testing gridfs")
