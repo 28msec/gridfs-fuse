@@ -10,5 +10,5 @@ Package: @PPA_NAME@
 Architecture: any
 Depends: memcached, ${shlibs:Depends}, ${misc:Depends}
 Description: GridFS
-  GridFS is something ...
+  GridFS is a load-balanced, fault-torelant, distributed file system built on top of Mongo
 

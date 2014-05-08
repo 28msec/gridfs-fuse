@@ -1,29 +1,26 @@
-# Before execute, please check if the following variables are set correctly in the first lines of the script:
-# - PPA_MAINTAINER: master of ppa generation, can be passed via -D cmake option
-# - PPA_HOMEPAGE: homepage set in generated package
-# - PPA_DISTROS: ubuntu distributions for which a package is generated and uploaded
+#
+# Package configuration
+#
 
 SET(PPA_NAME "gridfs")
 SET(PPA_HOMEPAGE "http://www.28msec.com/")
 SET(PPA_DISTROS "precise")
 SET(PPA_VERSION "2.6.1")
-SET(PPA_UPSTREAM_VERSION "1")
+SET(PPA_UPSTREAM_VERSION "4")
 SET(PPA_MAINTAINER "Federico Cavalieri <f@28.io>")
-
-
-SET(PPA_BUILD_DEPENDENCIES "libmongo-cxx-driver-dev, debhelper, cmake, libfuse-dev, libboost-system-dev, libmemcached-dev")
+SET(PPA_BUILD_DEPENDENCIES "libmongo-cxx-driver-dev (=1:2.6.1~precise1), debhelper, cmake, libfuse-dev, libboost-system1.49-dev (=1.49.0twentyeight~precise1), libmemcached-dev")
 SET(PPA_HOST "ppa:28msec/experimental")
-EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
 
-SET(PPA_DIR "@CMAKE_CURRENT_BINARY_DIR@/ppaingGridFS")
+EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
+SET(PPA_DIR "@CMAKE_CURRENT_BINARY_DIR@/ppaing")
 SET(PPA_SOURCE_DIR "${PPA_DIR}/${PPA_NAME}-${PPA_VERSION}")
 SET(PPA_DEBIAN_DIR "${PPA_SOURCE_DIR}/debian")
-SET(PPA_DEBIAN_TEMPL_DIR "@CMAKE_CURRENT_SOURCE_DIR@/debianGridFS")
+SET(PPA_DEBIAN_TEMPL_DIR "@CMAKE_CURRENT_SOURCE_DIR@/debian")
 
 FILE(REMOVE_RECURSE ${PPA_DIR})
 FILE(MAKE_DIRECTORY ${PPA_SOURCE_DIR})
 
-MESSAGE(STATUS "Preparing Sausalito sources for PPA.")
+MESSAGE(STATUS "Preparing GridFS sources for PPA.")
 FILE(COPY @CMAKE_SOURCE_DIR@/.
   DESTINATION ${PPA_SOURCE_DIR}
   PATTERN "build" EXCLUDE
@@ -47,7 +44,7 @@ FOREACH(PPA_DISTRO ${PPA_DISTROS})
   CONFIGURE_FILE(${PPA_DEBIAN_TEMPL_DIR}/control.in "${PPA_DEBIAN_DIR}/control" @ONLY)
   CONFIGURE_FILE(${PPA_DEBIAN_TEMPL_DIR}/rules.in "${PPA_DEBIAN_DIR}/rules" @ONLY)
 
-  FILE(WRITE ${PPA_DEBIAN_DIR}/compat "7")
+  FILE(WRITE ${PPA_DEBIAN_DIR}/compat "9")
   FILE(WRITE ${PPA_DEBIAN_DIR}/source/format "3.0 (quilt)")
 
   MESSAGE(STATUS "Debian source package generation for ${PPA_DISTRO}.")
