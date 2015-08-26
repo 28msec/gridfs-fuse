@@ -6,11 +6,22 @@ SET(PPA_NAME "gridfs")
 SET(PPA_HOMEPAGE "http://www.28msec.com/")
 SET(PPA_DISTROS "precise")
 SET(PPA_VERSION "2.6.1")
-SET(PPA_UPSTREAM_VERSION "5")
+SET(PPA_UPSTREAM_VERSION "10")
 SET(PPA_MAINTAINER "Federico Cavalieri <f@28.io>")
-SET(PPA_BUILD_DEPENDENCIES "libmongo-cxx-driver-dev (=2.6.1~precise2), debhelper, cmake, libfuse-dev, libboost-system1.49-dev (=1.49.0twentyeight~precise1), libmemcached-dev")
-SET(PPA_HOST "ppa:28msec/experimental")
-#SET(PPA_HOST "ppa:28msec/sausalito")
+
+#SET(PPA_HOST "ppa:fcavalieri/experiments")
+SET(PPA_HOST "ppa:fcavalieri/sausalito")
+
+SET(PPA_BUILD_DEPENDENCIES_precise "libmongo-cxx-driver-dev (=2.6.1~precise10), debhelper, cmake, libfuse-dev, libboost-system1.49-dev (=1.49.0twentyeight~precise1), libmemcached-dev")
+SET(PPA_DEPENDENCIES_precise "libmongo-cxx-driver (=2.6.1~precise10), libboost-system1.49.0 (=1.49.0twentyeight~precise1), memcached")
+
+SET(PPA_BUILD_DEPENDENCIES_trusty "libmongo-cxx-driver-dev (=2.6.1~trusty10), debhelper, cmake, libfuse-dev, libboost-system-dev , libmemcached-dev")
+SET(PPA_DEPENDENCIES_trusty "libmongo-cxx-driver (=2.6.1~trusty10), memcached")
+
+SET(PPA_BUILD_DEPENDENCIES_vivid "libmongo-cxx-driver-dev (=2.6.1~vivid10), debhelper, cmake, libfuse-dev, libboost-system-dev, libmemcached-dev")
+SET(PPA_DEPENDENCIES_vivid "libmongo-cxx-driver (=2.6.1~vivid10), memcached")
+
+
 
 EXECUTE_PROCESS(COMMAND date -R OUTPUT_VARIABLE PPA_DATE_TIME)
 SET(PPA_DIR "@CMAKE_CURRENT_BINARY_DIR@/ppaing")
@@ -35,6 +46,12 @@ EXECUTE_PROCESS(
   WORKING_DIRECTORY ${PPA_DIR})
 
 FOREACH(PPA_DISTRO ${PPA_DISTROS})
+   SET(PPA_BUILD_DEPENDENCIES ${PPA_BUILD_DEPENDENCIES_${PPA_DISTRO}})
+   MESSAGE(STATUS "Build dependencies for ${PPA_DISTRO}: ${PPA_BUILD_DEPENDENCIES}.")
+   SET(PPA_DEPENDENCIES ${PPA_DEPENDENCIES_${PPA_DISTRO}})
+   MESSAGE(STATUS "Dependencies for ${PPA_DISTRO}: ${PPA_DEPENDENCIES}.")
+
+
   EXECUTE_PROCESS(
     COMMAND cp ${PPA_NAME}_${PPA_VERSION}.orig.tar.gz ${PPA_NAME}_${PPA_VERSION}~${PPA_DISTRO}${PPA_UPSTREAM_VERSION}.orig.tar.gz
     WORKING_DIRECTORY ${PPA_DIR})
